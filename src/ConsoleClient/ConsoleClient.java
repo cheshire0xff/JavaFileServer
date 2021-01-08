@@ -85,7 +85,8 @@ public class ConsoleClient {
             var objectInputStream = new ObjectInputStream(socket.getInputStream());
             RemoteDirectory rdir = (RemoteDirectory) objectInputStream.readObject();
             listFiles("", rdir);
-            rdir.files.get(0).get("/home/cheshire/JavaFileServerLocal/",  socket, new Observer());
+            var ok = rdir.files.get(3).get("/home/cheshire/JavaFileServerLocal/",  socket, new Observer());
+            System.out.println("MD5 is " + (ok ? "ok" : "incorrect"));
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
