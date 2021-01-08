@@ -1,6 +1,8 @@
 package server;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
@@ -10,7 +12,6 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -18,7 +19,6 @@ import java.util.function.Consumer;
 
 class RequestHandler implements Runnable
 {
-    private static final int timeout = (int) Duration.ofSeconds(10).toMillis();
     public RequestHandler(Socket socket) {
         this.socket = socket;
     }
@@ -31,22 +31,59 @@ class RequestHandler implements Runnable
      *  getfile PATH
      *      - return raw bytes from a file
      */
+    
     public void run() {
+        while(true)
+        {
             try {
                 PrintWriter writer = new PrintWriter(socket.getOutputStream());
                 BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 System.out.println("start reading");
                 String line = reader.readLine();
+                if (line == null)
+                {
+                    return;
+                }
                 System.out.println("read: " + line);
                 if (line.equals("getroot"))
                 {
                     var objectStream = new ObjectOutputStream(socket.getOutputStream());
                     objectStream.writeObject(TdpServer.rootDir);
                 }
+                else if (line.startsWith("getfile "))
+                {
+                    var path = line.split(" ", 2)[1];
+                    if (!path.startsWith(TdpServer.rootDir.path))
+                    {
+                        System.out.println("Invalid path, not in root");
+                        return;
+                    }
+                    var p = Paths.get(path);
+                    if (!Files.isRegularFile(p))
+                    {
+                        System.out.println("File not found");
+                        return;
+                    }
+                    File f = new File(p.toString());
+                    var fileInput = new FileInputStream(f);
+                    int size = (int) Files.size(p);
+                    while (size > 0)
+                    {
+                        int chunk = 10000; // max size
+                        if (size < chunk)
+                        {
+                            chunk = size;
+                        }
+                        size -= chunk;
+                        var buf = fileInput.readNBytes((int) chunk);
+                        socket.getOutputStream().write(buf);
+                        socket.getOutputStream().flush();
+                    }
+                }
             } catch (Exception e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
+        }
     }
 }
 
@@ -95,7 +132,11 @@ public class TdpServer {
         public void accept(Path f) {
             if (Files.isRegularFile(f))
             {
-                rootDir.addFile(new RemoteFileInfo(f.toString(), 0));
+                try {
+                    rootDir.addFile(new RemoteFileInfo(f.toString(), (int) Files.size(f)));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
             else if (Files.isDirectory(f))
             {
@@ -106,7 +147,6 @@ public class TdpServer {
                     stream.forEach(new ConsumerImpl(dir));
                     stream.close();
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
@@ -120,7 +160,6 @@ public class TdpServer {
         try {
             Files.list(path).forEach(new ConsumerImpl(rootDir));;
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }

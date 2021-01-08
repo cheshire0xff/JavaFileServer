@@ -10,6 +10,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
+import server.IDownloadProgressObserver;
 import server.RemoteDirectory;
 
 // TdbClient
@@ -25,6 +26,16 @@ import server.RemoteDirectory;
  * ! - no answer needed
  * $ - finish
  */
+
+class Observer implements IDownloadProgressObserver 
+{
+
+    @Override
+    public void updateProgress(int downloaded, int total) {
+        System.out.println(downloaded + "/" + total + " bytes");
+    }
+    
+}
 
 
 public class ConsoleClient {
@@ -63,17 +74,18 @@ public class ConsoleClient {
                 ){
             BufferedReader socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             PrintWriter socketWriter = new PrintWriter(socket.getOutputStream());
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//                // TODO Auto-generated catch block
+//                e.printStackTrace();
+//            }
             socketWriter.print("getroot\n");
             socketWriter.flush();
             var objectInputStream = new ObjectInputStream(socket.getInputStream());
             RemoteDirectory rdir = (RemoteDirectory) objectInputStream.readObject();
             listFiles("", rdir);
+            rdir.files.get(0).get("/home/cheshire/JavaFileServerLocal/",  socket, new Observer());
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
