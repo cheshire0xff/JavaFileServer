@@ -22,7 +22,7 @@ public class TdpServer {
     private final static int maxConnections = 10;
     public final static int downloadChunkSize = 100000;
     public final static int port = 5000;
-    public static RemoteDirectory rootDir = null;
+    private static RemoteDirectory rootDir = null;
 
     public static void main(String[] args) {
         if (args.length != 1)
@@ -51,6 +51,16 @@ public class TdpServer {
         {
             System.out.println(e);
         }
+    }
+    
+    public static synchronized void syncFileList()
+    {
+        fillDir(Paths.get(TdpServer.rootDir.path));
+    }
+    
+    public static synchronized RemoteDirectory getRoot()
+    {
+        return TdpServer.rootDir;
     }
     
     private static class ConsumerImpl implements Consumer<Path>

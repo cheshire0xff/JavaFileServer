@@ -71,6 +71,9 @@ public class ConsoleClient {
             listFiles("", controller.rootDir);
             var ok = controller.downloadFile("/home/cheshire/JavaFileServerLocal/", controller.rootDir.files.get(3),  new Observer());
             System.out.println("MD5 is " + (ok ? "ok" : "incorrect"));
+            ok = controller.delete(controller.rootDir.dirs.get(0));
+            System.out.println("file delete: " + (ok ? "ok" : "incorrect"));
+            listFiles("", controller.rootDir);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {

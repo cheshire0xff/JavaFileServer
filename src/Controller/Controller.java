@@ -1,5 +1,7 @@
 package Controller;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -34,13 +36,13 @@ public class Controller
         return false;
     }
     
-    public boolean delete(RemoteFileInfo file)
+    public boolean delete(RemoteFileInfo file) throws UnknownHostException, IOException, ClassNotFoundException
     {
-        return false;
+        return delete("deletefile ", file.path);
     }
-    public boolean delete(RemoteDirectory directory)
+    public boolean delete(RemoteDirectory directory) throws UnknownHostException, IOException, ClassNotFoundException
     {
-        return false;
+        return delete("deletedir ", directory.path);
     }
 
     public boolean downloadFile(String outputPath, RemoteFileInfo file,  IDownloadProgressObserver observer) throws IOException
@@ -90,6 +92,25 @@ public class Controller
             socket = new Socket(hostname, 5000);
         }
         return socket;
+    }
+    
+    private boolean delete(String request, String path) throws UnknownHostException, IOException, ClassNotFoundException
+    {
+        var currentSocket = getSocket();
+        var writer = new PrintWriter(currentSocket.getOutputStream());
+        var reader = new BufferedReader(new InputStreamReader(currentSocket.getInputStream()));
+        writer.println(request  + path);
+        writer.flush();
+        var line = reader.readLine();
+        rootDir = getRoot();
+        if (line.equals("OK"))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
 }
