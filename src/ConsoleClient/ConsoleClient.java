@@ -3,10 +3,11 @@ package ConsoleClient;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Paths;
 import java.util.Scanner;
 
 import Controller.Controller;
-import Controller.IDownloadProgressObserver;
+import server.IObserver;
 import server.RemoteDirectory;
 
 // TdbClient
@@ -23,12 +24,16 @@ import server.RemoteDirectory;
  * $ - finish
  */
 
-class Observer implements IDownloadProgressObserver 
+class Observer implements IObserver
 {
-
+    Observer(String text)
+    {
+        this.text = text;
+    }
+    String text;
     @Override
     public void updateProgress(int downloaded, int total) {
-        System.out.println(downloaded + "/" + total + " bytes");
+        System.out.println(text + downloaded + "/" + total + " bytes");
     }
     
 }
@@ -69,10 +74,13 @@ public class ConsoleClient {
                 ){
             var controller = new Controller(serverAddress);
             listFiles("", controller.rootDir);
-            var ok = controller.downloadFile("/home/cheshire/JavaFileServerLocal/", controller.rootDir.files.get(3),  new Observer());
+            var fileToDownload = controller.rootDir.files.get(3);
+            var filenameToDownload = Paths.get(fileToDownload.path).getFileName();
+            var ok = controller.downloadFile("/home/cheshire/JavaFileServerLocal/" + filenameToDownload, fileToDownload,  new Observer("Downloading "));
             System.out.println("MD5 is " + (ok ? "ok" : "incorrect"));
             ok = controller.delete(controller.rootDir.dirs.get(0));
             System.out.println("file delete: " + (ok ? "ok" : "incorrect"));
+            ok = controller.uploadFile("/home/cheshire/JavaFileServerLocal/" + filenameToDownload, "/home/cheshire/JavaFileServer/testDir1/aa_copy.jpeg", new Observer("Uploading "));
             listFiles("", controller.rootDir);
         } catch (IOException e) {
             e.printStackTrace();

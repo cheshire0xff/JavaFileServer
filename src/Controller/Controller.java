@@ -1,18 +1,14 @@
 package Controller;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.PrintWriter;
+import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.file.Paths;
 import java.util.Arrays;
 
+import server.IObserver;
 import server.RemoteDirectory;
 import server.RemoteFileInfo;
 import server.TdpServer;
@@ -24,12 +20,31 @@ public class Controller
     public Controller(InetAddress hostname) throws ClassNotFoundException, IOException
     {
         this.hostname = hostname;
+        refresh();
+        socket.setSoTimeout(10000);
+    }
+    
+    public void refresh() throws ClassNotFoundException, IOException
+    {
         rootDir = getRoot();
     }
 
-    public boolean uploadFile(String inputPath,  IDownloadProgressObserver observer) throws IOException
+    public boolean uploadFile(String inputPath, String serverpath,  IObserver observer) throws IOException, ClassNotFoundException
     {
-        return false;
+        checkSocket();
+        output.writeObject("upfile " + serverpath);
+        output.flush();
+
+        var upFile = new RemoteFileInfo(inputPath);
+        output.writeObject(upFile);
+        if (!checkOk())
+        {
+            return false;
+        }
+        TdpServer.sendFile(socket, inputPath, observer);
+        var ok = checkOk();
+        refresh();
+        return ok;
     }
     public boolean uploadDirectory(String directoryName ) throws IOException
     {
@@ -45,64 +60,41 @@ public class Controller
         return delete("deletedir ", directory.path);
     }
 
-    public boolean downloadFile(String outputPath, RemoteFileInfo file,  IDownloadProgressObserver observer) throws IOException
+    public boolean downloadFile(String outputPath, RemoteFileInfo file,  IObserver observer) throws IOException
     {
-        var currentSocket = getSocket();
-        var writer = new PrintWriter(currentSocket.getOutputStream());
-        writer.println("getfile " + file.path);
-        writer.flush();
-        var sizeLeft = file.sizeBytes;
-        var fileOnDisk = new File(outputPath + Paths.get(file.path).getFileName());
-        fileOnDisk.createNewFile();
-        var fileInput = new FileOutputStream(fileOnDisk);
-        while (sizeLeft > 0)
-        {
-            int chunkSize = TdpServer.downloadChunkSize;
-            if (sizeLeft < chunkSize)
-            {
-                chunkSize = sizeLeft;
-            }
-            sizeLeft -= chunkSize;
-            var buf = currentSocket.getInputStream().readNBytes((int) chunkSize);
-            fileInput.write(buf);
-            observer.updateProgress(file.sizeBytes - sizeLeft, file.sizeBytes);
-        }
-        fileInput.flush();
-        fileInput.close();
-        return Arrays.equals(file.calculateMD5(fileOnDisk.getPath()), file.md5digest);
+        checkSocket();
+        output.writeObject("getfile " + file.path);
+        output.flush();
+        TdpServer.receiveFile(socket, outputPath, file.sizeBytes, observer);
+        return Arrays.equals(file.calculateMD5(outputPath), file.md5digest);
     }
 
     private InetAddress hostname;
     private Socket socket = null;
+    private ObjectInputStream input = null;
+    private ObjectOutputStream output = null;
 
     private RemoteDirectory getRoot() throws IOException, ClassNotFoundException
     {
-            var currentSocket = getSocket();
-            PrintWriter socketWriter = new PrintWriter(currentSocket.getOutputStream());
-            socketWriter.print("getroot\n");
-            socketWriter.flush();
-            var objectInputStream = new ObjectInputStream(currentSocket.getInputStream());
-            return (RemoteDirectory) objectInputStream.readObject();
+            checkSocket();
+            output.writeObject("getroot");
+            output.flush();
+            return (RemoteDirectory) input.readObject();
     }
     
-    private Socket getSocket() throws UnknownHostException, IOException
+    private void checkSocket() throws UnknownHostException, IOException
     {
         if (socket == null)
         {
             socket = new Socket(hostname, 5000);
+            output = new ObjectOutputStream(socket.getOutputStream());
+            input = new ObjectInputStream(socket.getInputStream());
         }
-        return socket;
     }
     
-    private boolean delete(String request, String path) throws UnknownHostException, IOException, ClassNotFoundException
+    private boolean checkOk() throws ClassNotFoundException, IOException
     {
-        var currentSocket = getSocket();
-        var writer = new PrintWriter(currentSocket.getOutputStream());
-        var reader = new BufferedReader(new InputStreamReader(currentSocket.getInputStream()));
-        writer.println(request  + path);
-        writer.flush();
-        var line = reader.readLine();
-        rootDir = getRoot();
+        var line = (String)input.readObject();
         if (line.equals("OK"))
         {
             return true;
@@ -111,6 +103,16 @@ public class Controller
         {
             return false;
         }
+    }
+    
+    private boolean delete(String request, String path) throws UnknownHostException, IOException, ClassNotFoundException
+    {
+        checkSocket();
+        output.writeObject(request  + path);
+        output.flush();
+        var ok = checkOk();
+        refresh();
+        return ok;
     }
 
 }

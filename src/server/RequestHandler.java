@@ -1,14 +1,11 @@
 package server;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.PrintWriter;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 
 class RequestHandler implements Runnable
@@ -17,6 +14,8 @@ class RequestHandler implements Runnable
         this.socket = socket;
     }
     private Socket socket;
+    private ObjectInputStream input = null;
+    private ObjectOutputStream output = null;
     @Override
     /*
      * request:
@@ -28,15 +27,27 @@ class RequestHandler implements Runnable
      *      - return OK|FAIL
      *  deletedir PATH
      *      - return OK|FAIL
+     *  upfile PATH
+     *  Object - RemoteFileInfo
+     *  file bytes
+     *      - return OK|FAIL
+     *  updir PATH
+     *      - return OK|FAIL
      */
     
     public void run() {
+        try {
+            output = new ObjectOutputStream(socket.getOutputStream());
+            input = new ObjectInputStream(socket.getInputStream());
+        } catch (IOException e1) {
+            e1.printStackTrace();
+            return;
+        }
         while(true)
         {
             try {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 System.out.println("start reading");
-                String line = reader.readLine();
+                var line = (String)input.readObject();
                 if (line == null)
                 {
                     return;
@@ -58,7 +69,16 @@ class RequestHandler implements Runnable
                 {
                     handleDeleteDir(line.split(" ", 2)[1]);
                 }
+                else if (line.startsWith("upfile "))
+                {
+                    handleUpFile(line.split(" ", 2)[1], input);
+                }
             } catch (Exception e) {
+                try {
+                    input.reset();
+                } catch (IOException e1) {
+                    return;
+                }
                 e.printStackTrace();
             }
         }
@@ -86,14 +106,12 @@ class RequestHandler implements Runnable
     }
     void sendMessage(String m) throws IOException
     {
-        var writer = new PrintWriter(socket.getOutputStream());
-        writer.println(m);
-        writer.flush();
+        output.writeObject(m);
+        output.flush();
     }
     void handleGetRoot() throws IOException
     {
-            var objectStream = new ObjectOutputStream(socket.getOutputStream());
-            objectStream.writeObject(TdpServer.getRoot());
+            output.writeObject(TdpServer.getRoot());
     }
     
     void handleGetFile(String path) throws IOException
@@ -104,22 +122,7 @@ class RequestHandler implements Runnable
             System.out.println("File not found");
             return;
         }
-        File f = new File(p.toString());
-        var fileInput = new FileInputStream(f);
-        int size = (int) Files.size(p);
-        while (size > 0)
-        {
-            int chunk = TdpServer.downloadChunkSize; // max size
-            if (size < chunk)
-            {
-                chunk = size;
-            }
-            size -= chunk;
-            var buf = fileInput.readNBytes((int) chunk);
-            socket.getOutputStream().write(buf);
-            socket.getOutputStream().flush();
-        }
-        fileInput.close();
+        TdpServer.sendFile(socket,  path, null);
     }
     
     void handleDeleteFile(String path) throws IOException
@@ -173,5 +176,44 @@ class RequestHandler implements Runnable
         System.out.println("dir deleted ");
         System.out.println(path);
         sendOk();
+    }
+
+    void handleUpFile(String path, ObjectInputStream input) throws IOException, ClassNotFoundException
+    {
+        var file = (RemoteFileInfo)input.readObject();
+
+        path = path.strip();
+        var p = Paths.get(path);
+        if (!isInRoot(path))
+        {
+            System.out.println("upfile error: wrong path");
+            System.out.println(path);
+            sendFail();
+            return;
+        }
+        if (Files.exists(p))
+        {
+            System.out.println("upfile error: File already exist!");
+            System.out.println(path);
+            sendFail();
+            return;
+        }
+        sendOk();
+        TdpServer.receiveFile(socket, path, file.sizeBytes, null);
+        var newFile = new RemoteFileInfo(path);
+        if (Arrays.equals(file.md5digest, newFile.md5digest))
+        {
+            System.out.println("upfile success.");
+            System.out.println(path);
+            TdpServer.syncFileList();
+            sendOk();
+        }
+        else
+        {
+            System.out.println("upfile failed wrong md5 sum.");
+            System.out.println(path);
+//            Files.delete(Paths.get(path));
+            sendFail();
+        }
     }
 }

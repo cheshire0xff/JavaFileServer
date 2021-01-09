@@ -1,5 +1,8 @@
 package server;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -53,6 +56,57 @@ public class TdpServer {
         }
     }
     
+    public static void sendFile(Socket s, String path, IObserver observer) throws IOException
+    {
+        File f = new File(path);
+        var fileInput = new FileInputStream(f);
+        int size = (int) Files.size(Paths.get(path));
+        int totalSize = size;
+        var output = s.getOutputStream();
+        while (size > 0)
+        {
+            int chunk = TdpServer.downloadChunkSize; // max size
+            if (size < chunk)
+            {
+                chunk = size;
+            }
+            size -= chunk;
+            var buf = fileInput.readNBytes((int) chunk);
+            output.write(buf);
+            output.flush();
+            if (observer != null)
+            {
+                observer.updateProgress(totalSize  - size, totalSize);
+            }
+        }
+        fileInput.close();
+    }
+    public static void receiveFile(Socket s, String path, int totalSize, IObserver observer) throws IOException
+    {        
+         var fileOnDisk = new File(path);
+        fileOnDisk.createNewFile();
+        var fileOutput = new FileOutputStream(fileOnDisk);
+        int sizeLeft = totalSize;
+        var socketInput = s.getInputStream(); 
+        while (sizeLeft > 0)
+        {
+            int chunkSize = TdpServer.downloadChunkSize;
+            if (sizeLeft < chunkSize)
+            {
+                chunkSize = sizeLeft;
+            }
+            sizeLeft -= chunkSize;
+            var buf = socketInput.readNBytes((int) chunkSize);
+            fileOutput.write(buf);
+            if (observer != null)
+            {
+                observer.updateProgress(totalSize  - sizeLeft, totalSize);
+            }
+        }
+        fileOutput.flush();
+        fileOutput.close();
+    }
+    
     public static synchronized void syncFileList()
     {
         fillDir(Paths.get(TdpServer.rootDir.path));
@@ -77,7 +131,7 @@ public class TdpServer {
                 
             if (Files.isRegularFile(f))
             {
-                rootDir.addFile(new RemoteFileInfo(f.toString(), (int) Files.size(f)));
+                rootDir.addFile(new RemoteFileInfo(f.toString()));
             }
             else if (Files.isDirectory(f))
             {

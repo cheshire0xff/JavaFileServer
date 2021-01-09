@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -18,10 +20,10 @@ public class RemoteFileInfo implements Serializable
      * should be constructed only by side containing actual file on disk
      */
     
-    public RemoteFileInfo(String path, int size) throws IOException {
+    public RemoteFileInfo(String path) throws IOException {
         this.path = path;
-        this.sizeBytes = size;
         md5digest = calculateMD5(path);
+        sizeBytes = (int) Files.size(Paths.get(path));
     }
     
 
