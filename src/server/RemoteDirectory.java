@@ -14,6 +14,7 @@ public class RemoteDirectory implements Serializable {
         this.path = path;
     }
     
+    
     public synchronized void addFile(RemoteFileInfo file)
     {
         files.add(file);

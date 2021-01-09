@@ -1,16 +1,12 @@
 package ConsoleClient;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
-import java.io.PrintWriter;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
-import server.IDownloadProgressObserver;
+import Controller.Controller;
+import Controller.IDownloadProgressObserver;
 import server.RemoteDirectory;
 
 // TdbClient
@@ -69,23 +65,11 @@ public class ConsoleClient {
             return;
         }
         try (
-                    Socket socket = new Socket(serverAddress, 5000);
                     Scanner scanner = new Scanner(System.in);       
                 ){
-            BufferedReader socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter socketWriter = new PrintWriter(socket.getOutputStream());
-//            try {
-//                Thread.sleep(1000);
-//            } catch (InterruptedException e) {
-//                // TODO Auto-generated catch block
-//                e.printStackTrace();
-//            }
-            socketWriter.print("getroot\n");
-            socketWriter.flush();
-            var objectInputStream = new ObjectInputStream(socket.getInputStream());
-            RemoteDirectory rdir = (RemoteDirectory) objectInputStream.readObject();
-            listFiles("", rdir);
-            var ok = rdir.files.get(3).get("/home/cheshire/JavaFileServerLocal/",  socket, new Observer());
+            var controller = new Controller(serverAddress);
+            listFiles("", controller.rootDir);
+            var ok = controller.downloadFile("/home/cheshire/JavaFileServerLocal/", controller.rootDir.files.get(3),  new Observer());
             System.out.println("MD5 is " + (ok ? "ok" : "incorrect"));
         } catch (IOException e) {
             e.printStackTrace();
