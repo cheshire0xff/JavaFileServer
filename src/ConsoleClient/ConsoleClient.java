@@ -3,7 +3,6 @@ package ConsoleClient;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.file.Paths;
 import java.util.Scanner;
 
 import Controller.Controller;
@@ -32,25 +31,48 @@ class Observer implements IObserver
     }
     String text;
     @Override
-    public void updateProgress(int downloaded, int total) {
-        System.out.println(text + downloaded + "/" + total + " bytes");
+    public void updateProgress(long downloaded, long total) {
+        System.out.print(text + downloaded + "/" + total + " bytes\r");
+        System.out.flush();
     }
     
 }
 
-
 public class ConsoleClient {
+    
+    static final String helpMessage = 
+            "h - help\n" + 
+            "q - exit\n" + 
+            "ls - list files\n" + 
+            "download REMOTE_PATH LOCAL_PATH\n" + 
+            "\tdownload file from server\n" + 
+            "\tREMOTE_PATH - relative path to a file on remote server\n" + 
+            "\tLOCAL_PATH - path on local machine where file will be downloaded\n" + 
+            "upload LOCAL_PATH REMOTE_PATH\n" + 
+            "\tupload file to server\n" + 
+            "\tLOCAL_PATH - path on local machine with file to be uploaded\n" + 
+            "\tREMOTE_PATH - relative path on remote server, where file will be saved\n" + 
+            "rm REMOTE_PATH\n" + 
+            "\tREMOTE_PATH - relative path to remote file you want to remove\n" + 
+            "mkdir REMOTE_PATH\n" + 
+            "\tREMOTE_PATH - relative path on remote server, where dir will be created\n" + 
+            "rmdir REMOTE_PATH\n" + 
+            "\tREMOTE_PATH - relative path to remote dir you want to remove\n";
 
-    public static void listFiles(String tabs, RemoteDirectory dir)
+    static void help()
     {
-            for (var f : dir.files)
+        System.out.print(helpMessage);
+    }
+    static void ls(RemoteDirectory pwd, String tabs)
+    {
+            for (var f : pwd.files)
             {
-                System.out.println(tabs + f.path);
+                System.out.println(tabs + f.filename);
             }
-            for (var f : dir.dirs)
+            for (var f : pwd.dirs)
             {
-                System.out.println(tabs + f.path);
-                listFiles(tabs + "\t", f);
+                System.out.println(tabs + f.directoryName);
+                ls(f, tabs + "\t");
             }
     }
     public static void main(String[] args) {
@@ -69,23 +91,99 @@ public class ConsoleClient {
             System.out.println("Cannot obtain server ip!");
             return;
         }
+        help();
         try (
+                    var controller = new Controller(serverAddress);
                     Scanner scanner = new Scanner(System.in);       
                 ){
-            var controller = new Controller(serverAddress);
-            listFiles("", controller.rootDir);
-            var fileToDownload = controller.rootDir.files.get(3);
-            var filenameToDownload = Paths.get(fileToDownload.path).getFileName();
-            var ok = controller.downloadFile("/home/cheshire/JavaFileServerLocal/" + filenameToDownload, fileToDownload,  new Observer("Downloading "));
-            System.out.println("MD5 is " + (ok ? "ok" : "incorrect"));
-            ok = controller.delete(controller.rootDir.dirs.get(0));
-            System.out.println("file delete: " + (ok ? "ok" : "incorrect"));
-            ok = controller.uploadFile("/home/cheshire/JavaFileServerLocal/" + filenameToDownload, "/home/cheshire/JavaFileServer/testDir1/aa_copy.jpeg", new Observer("Uploading "));
-            listFiles("", controller.rootDir);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
+            while (true)
+            {
+                var line = scanner.nextLine();
+                if (line.startsWith("!"))
+                {
+                    var process = Runtime.getRuntime().exec(line.substring(1));
+                    var scn = new Scanner(process.getInputStream());
+                    while(scn.hasNextLine())
+                    {
+                        System.out.println(scn.nextLine());
+                    }
+                    scn.close();
+                }
+                else if (line.equals("h"))
+                {
+                    help();
+                }
+                else if (line.equals("q"))
+                {
+                    System.out.println("quitting");
+                    return;
+                }
+                else if (line.equals("ls"))
+                {
+                    ls(controller.rootDir, "");
+                }
+                else if (line.startsWith("download "))
+                {
+                    args = line.split(" ", 3);
+                   if ( controller.downloadFile(args[2],args[1], new Observer("Downloading")))
+                   {
+                       System.out.println("Download ok.");
+                   }
+                   else
+                   {
+                       System.out.println("Download failed.");
+                   }
+                }
+                else if (line.startsWith("upload "))
+                {
+                    args = line.split(" ", 3);
+                    if (controller.uploadFile(args[1],args[2], new Observer("Uploading")))
+                    {
+                       System.out.println("Upload ok.");
+                    }
+                    else
+                    {
+                       System.out.println("Upload failed.");
+                    }
+                }
+                else if (line.startsWith("mkdir "))
+                {
+                    args = line.split(" ", 2);
+                    if (controller.uploadDirectory(args[1]))
+                    {
+                       System.out.println("mkdir ok.");
+                    }
+                    else
+                    {
+                       System.out.println("mkdir failed.");
+                    }
+                }
+                else if (line.startsWith("rmdir "))
+                {
+                    args = line.split(" ", 2);
+                    if (controller.deleteDir(args[1]))
+                    {
+                       System.out.println("rmdir ok.");
+                    }
+                    else
+                    {
+                       System.out.println("rmdir failed.");
+                    }
+                }
+                else if (line.startsWith("rm "))
+                {
+                    args = line.split(" ", 2);
+                    if (controller.deleteFile(args[1]))
+                    {
+                       System.out.println("rm ok.");
+                    }
+                    else
+                    {
+                       System.out.println("rm failed.");
+                    }
+                }
+            }
+        } catch (Exception  e) {
             e.printStackTrace();
         }
     }

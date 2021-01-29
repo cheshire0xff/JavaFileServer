@@ -1,5 +1,5 @@
 package server;
 
 public interface IObserver {
-    void updateProgress(int downloaded, int total);
+    void updateProgress(long downloaded, long total);
 }

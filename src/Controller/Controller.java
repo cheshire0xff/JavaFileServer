@@ -6,6 +6,7 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 import server.IObserver;
@@ -13,7 +14,7 @@ import server.RemoteDirectory;
 import server.RemoteFileInfo;
 import server.TdpServer;
 
-public class Controller 
+public class Controller implements AutoCloseable
 {
     public RemoteDirectory rootDir;
 
@@ -35,7 +36,7 @@ public class Controller
         output.writeObject("upfile " + serverpath);
         output.flush();
 
-        var upFile = new RemoteFileInfo(inputPath);
+        var upFile = new RemoteFileInfo(Paths.get(inputPath));
         output.writeObject(upFile);
         if (!checkOk())
         {
@@ -46,27 +47,36 @@ public class Controller
         refresh();
         return ok;
     }
-    public boolean uploadDirectory(String directoryName ) throws IOException
+    public boolean uploadDirectory(String directoryName ) throws IOException, ClassNotFoundException
     {
-        return false;
+        return singleRequest("updir, ", directoryName);
     }
     
-    public boolean delete(RemoteFileInfo file) throws UnknownHostException, IOException, ClassNotFoundException
+    public boolean deleteFile(String serverPath) throws UnknownHostException, IOException, ClassNotFoundException
     {
-        return delete("deletefile ", file.path);
+        return singleRequest("deletefile " , serverPath);
     }
-    public boolean delete(RemoteDirectory directory) throws UnknownHostException, IOException, ClassNotFoundException
+    public boolean deleteDir(String serverPath) throws UnknownHostException, IOException, ClassNotFoundException
     {
-        return delete("deletedir ", directory.path);
+        return singleRequest("deletedir ", serverPath);
     }
 
-    public boolean downloadFile(String outputPath, RemoteFileInfo file,  IObserver observer) throws IOException
+    public boolean downloadFile(String outputPath, String serverPath,  IObserver observer) throws IOException, ClassNotFoundException
     {
+        var remoteFile = rootDir.tryFindFile(serverPath);
+        if (remoteFile == null)
+        {
+            return false;
+        }
         checkSocket();
-        output.writeObject("getfile " + file.path);
+        output.writeObject("getfile " + serverPath);
         output.flush();
-        TdpServer.receiveFile(socket, outputPath, file.sizeBytes, observer);
-        return Arrays.equals(file.calculateMD5(outputPath), file.md5digest);
+        if (!checkOk())
+        {
+            return false;
+        }
+        TdpServer.receiveFile(socket, outputPath, remoteFile.sizeBytes, observer);
+        return Arrays.equals(remoteFile.calculateMD5(Paths.get(outputPath)), remoteFile.md5digest);
     }
 
     private InetAddress hostname;
@@ -105,7 +115,7 @@ public class Controller
         }
     }
     
-    private boolean delete(String request, String path) throws UnknownHostException, IOException, ClassNotFoundException
+    private boolean singleRequest(String request, String path) throws UnknownHostException, IOException, ClassNotFoundException
     {
         checkSocket();
         output.writeObject(request  + path);
@@ -113,6 +123,14 @@ public class Controller
         var ok = checkOk();
         refresh();
         return ok;
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (socket != null)
+        {
+            socket.close();
+        }
     }
 
 }

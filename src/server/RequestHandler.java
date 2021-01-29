@@ -10,9 +10,11 @@ import java.util.Arrays;
 
 class RequestHandler implements Runnable
 {
-    public RequestHandler(Socket socket) {
+    public RequestHandler(Socket socket, String rootPath) {
+        this.rootDirPath = rootPath;
         this.socket = socket;
     }
+    private String rootDirPath;
     private Socket socket;
     private ObjectInputStream input = null;
     private ObjectOutputStream output = null;
@@ -73,6 +75,14 @@ class RequestHandler implements Runnable
                 {
                     handleUpFile(line.split(" ", 2)[1], input);
                 }
+                else if (line.startsWith("updir "))
+                {
+                    handleUpDir(line.split(" ", 2)[1]);
+                }
+                else if (line.startsWith("deletedir "))
+                {
+                    handleDeleteDir(line.split(" ", 2)[1]);
+                }
             } catch (Exception e) {
                 try {
                     input.reset();
@@ -84,18 +94,6 @@ class RequestHandler implements Runnable
         }
     }
     
-    boolean isInRoot(String path)
-    {
-        if (!path.startsWith(TdpServer.getRoot().path))
-        {
-            System.out.println("Invalid path, not in root");
-            return false;
-        }
-        else
-        {
-            return true;
-        }
-    }
     void sendOk() throws IOException
     {
         sendMessage("OK");
@@ -116,25 +114,20 @@ class RequestHandler implements Runnable
     
     void handleGetFile(String path) throws IOException
     {
-        var p = Paths.get(path);
+        var p = Paths.get(rootDirPath, path);
         if (!Files.isRegularFile(p))
         {
             System.out.println("File not found");
+            sendFail();
             return;
         }
-        TdpServer.sendFile(socket,  path, null);
+        sendOk();
+        TdpServer.sendFile(socket, p.toString(), null);
     }
     
     void handleDeleteFile(String path) throws IOException
     {
-        if (!isInRoot(path))
-        {
-            System.out.println("file delete error: wrong path");
-            System.out.println(path);
-            sendFail();
-            return;
-        }
-        var p = Paths.get(path);
+        var p = Paths.get(rootDirPath, path);
         if (!Files.isRegularFile(p))
         {
             System.out.println("file delete error: not a file");
@@ -151,68 +144,86 @@ class RequestHandler implements Runnable
     
     void handleDeleteDir(String path) throws IOException
     {
-        if (!isInRoot(path))
+        var dir = Paths.get(rootDirPath, path).toFile();
+        boolean ok = false;
+        if (!dir.isDirectory())
         {
-            System.out.println("dir delete error: wrong path");
-            System.out.println(path);
-            sendFail();
-            return;
+            System.out.println("deletedir fail, not a dir.");
+            System.out.println(dir.toString());
         }
-        var p = Paths.get(path);
-        if (!Files.isDirectory(p))
+        if (dir.listFiles().length != 0)
         {
-            System.out.println("dir delete error: not a dir");
-            System.out.println(path);
-            sendFail();
-            return;
+            System.out.println("deletedir fail, dir not empty.");
+            System.out.println(dir.toString());
         }
-        if (Files.list(p).count() != 0)
+        if (dir.delete())
+        {
+            ok = true;
+        }
+        else
+        {
+            System.out.println("deletedir fail.");
+            System.out.println(dir.toString());
+        }
+
+        if (ok)
+        {
+            System.out.println("deletedir success.");
+            System.out.println(dir.toString());
+            TdpServer.syncFileList();
+            sendOk();
+        }
+        else
         {
             sendFail();
-            return;
         }
-        Files.delete(p);
-        TdpServer.syncFileList();
-        System.out.println("dir deleted ");
-        System.out.println(path);
-        sendOk();
     }
 
     void handleUpFile(String path, ObjectInputStream input) throws IOException, ClassNotFoundException
     {
         var file = (RemoteFileInfo)input.readObject();
 
-        path = path.strip();
-        var p = Paths.get(path);
-        if (!isInRoot(path))
-        {
-            System.out.println("upfile error: wrong path");
-            System.out.println(path);
-            sendFail();
-            return;
-        }
+        var p = Paths.get(rootDirPath, path);
         if (Files.exists(p))
         {
             System.out.println("upfile error: File already exist!");
-            System.out.println(path);
+            System.out.println(p.toString());
             sendFail();
             return;
         }
         sendOk();
-        TdpServer.receiveFile(socket, path, file.sizeBytes, null);
-        var newFile = new RemoteFileInfo(path);
+        p = TdpServer.receiveFile(socket, p.toString(), file.sizeBytes, null);
+        var newFile = new RemoteFileInfo(p);
         if (Arrays.equals(file.md5digest, newFile.md5digest))
         {
             System.out.println("upfile success.");
-            System.out.println(path);
+            System.out.println(p.toString());
             TdpServer.syncFileList();
             sendOk();
         }
         else
         {
             System.out.println("upfile failed wrong md5 sum.");
-            System.out.println(path);
+            System.out.println(p.toString());
 //            Files.delete(Paths.get(path));
+            sendFail();
+        }
+        
+    }
+    void handleUpDir(String path) throws IOException
+    {
+        var dir = Paths.get(rootDirPath, path).toFile();
+        if (dir.mkdir())
+        {
+            System.out.println("updir success.");
+            System.out.println(dir.toString());
+            TdpServer.syncFileList();
+            sendOk();
+        }
+        else
+        {
+            System.out.println("updir fail.");
+            System.out.println(dir.toString());
             sendFail();
         }
     }
