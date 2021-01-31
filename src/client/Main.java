@@ -6,7 +6,6 @@ import javafx.stage.Stage;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 
-
 public class Main extends Application {
 	@Override
 	public void start(Stage primaryStage) {
@@ -14,7 +13,7 @@ public class Main extends Application {
 			Parent root = FXMLLoader
 					.load(getClass()
 					.getResource("ui/MainWindow.fxml"));
-			Scene scene = new Scene(root, 300, 275);
+			Scene scene = new Scene(root, 600, 400);
 		    
 			primaryStage.setTitle("FXML Welcome");
 			primaryStage.setScene(scene);
