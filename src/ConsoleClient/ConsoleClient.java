@@ -1,11 +1,10 @@
 package ConsoleClient;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
-import Controller.Controller;
+import ClientApi.ClientApi;
 import server.IObserver;
 import server.RemoteDirectory;
 
@@ -41,23 +40,24 @@ class Observer implements IObserver
 public class ConsoleClient {
     
     static final String helpMessage = 
+            "! - any commands staring with ! are redirected to system console\n" + 
             "h - help\n" + 
             "q - exit\n" + 
             "ls - list files\n" + 
             "download REMOTE_PATH LOCAL_PATH\n" + 
-            "\tdownload file from server\n" + 
-            "\tREMOTE_PATH - relative path to a file on remote server\n" + 
-            "\tLOCAL_PATH - path on local machine where file will be downloaded\n" + 
+                "\tdownload file from server\n" + 
+                "\tREMOTE_PATH - relative path to a file on remote server\n" + 
+                "\tLOCAL_PATH - path on local machine where file will be downloaded\n" + 
             "upload LOCAL_PATH REMOTE_PATH\n" + 
-            "\tupload file to server\n" + 
-            "\tLOCAL_PATH - path on local machine with file to be uploaded\n" + 
-            "\tREMOTE_PATH - relative path on remote server, where file will be saved\n" + 
+                "\tupload file to server\n" + 
+                "\tLOCAL_PATH - path on local machine with file to be uploaded\n" + 
+                "\tREMOTE_PATH - relative path on remote server, where file will be saved\n" + 
             "rm REMOTE_PATH\n" + 
-            "\tREMOTE_PATH - relative path to remote file you want to remove\n" + 
+                "\tREMOTE_PATH - relative path to remote file you want to remove\n" + 
             "mkdir REMOTE_PATH\n" + 
-            "\tREMOTE_PATH - relative path on remote server, where dir will be created\n" + 
+                "\tREMOTE_PATH - relative path on remote server, where dir will be created\n" + 
             "rmdir REMOTE_PATH\n" + 
-            "\tREMOTE_PATH - relative path to remote dir you want to remove\n";
+                "\tREMOTE_PATH - relative path to remote dir you want to remove\n";
 
     static void help()
     {
@@ -93,7 +93,7 @@ public class ConsoleClient {
         }
         help();
         try (
-                    var controller = new Controller(serverAddress);
+                    var clientApi = new ClientApi(serverAddress);
                     Scanner scanner = new Scanner(System.in);       
                 ){
             while (true)
@@ -120,12 +120,12 @@ public class ConsoleClient {
                 }
                 else if (line.equals("ls"))
                 {
-                    ls(controller.rootDir, "");
+                    ls(clientApi.rootDir, "");
                 }
                 else if (line.startsWith("download "))
                 {
                     args = line.split(" ", 3);
-                   if ( controller.downloadFile(args[2],args[1], new Observer("Downloading")))
+                   if ( clientApi.downloadFile(args[2],args[1], new Observer("Downloading")))
                    {
                        System.out.println("Download ok.");
                    }
@@ -137,7 +137,7 @@ public class ConsoleClient {
                 else if (line.startsWith("upload "))
                 {
                     args = line.split(" ", 3);
-                    if (controller.uploadFile(args[1],args[2], new Observer("Uploading")))
+                    if (clientApi.uploadFile(args[1],args[2], new Observer("Uploading")))
                     {
                        System.out.println("Upload ok.");
                     }
@@ -149,7 +149,7 @@ public class ConsoleClient {
                 else if (line.startsWith("mkdir "))
                 {
                     args = line.split(" ", 2);
-                    if (controller.uploadDirectory(args[1]))
+                    if (clientApi.uploadDirectory(args[1]))
                     {
                        System.out.println("mkdir ok.");
                     }
@@ -161,7 +161,7 @@ public class ConsoleClient {
                 else if (line.startsWith("rmdir "))
                 {
                     args = line.split(" ", 2);
-                    if (controller.deleteDir(args[1]))
+                    if (clientApi.deleteDir(args[1]))
                     {
                        System.out.println("rmdir ok.");
                     }
@@ -173,7 +173,7 @@ public class ConsoleClient {
                 else if (line.startsWith("rm "))
                 {
                     args = line.split(" ", 2);
-                    if (controller.deleteFile(args[1]))
+                    if (clientApi.deleteFile(args[1]))
                     {
                        System.out.println("rm ok.");
                     }

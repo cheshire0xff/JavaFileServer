@@ -1,4 +1,4 @@
-package Controller;
+package ClientApi;
 
 import server.IObserver;
 

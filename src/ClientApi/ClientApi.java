@@ -1,4 +1,4 @@
-package Controller;
+package ClientApi;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -14,11 +14,11 @@ import server.RemoteDirectory;
 import server.RemoteFileInfo;
 import server.TdpServer;
 
-public class Controller implements AutoCloseable
+public class ClientApi implements AutoCloseable
 {
     public RemoteDirectory rootDir;
 
-    public Controller(InetAddress hostname) throws ClassNotFoundException, IOException
+    public ClientApi(InetAddress hostname) throws ClassNotFoundException, IOException
     {
         this.hostname = hostname;
         refresh();
@@ -79,6 +79,16 @@ public class Controller implements AutoCloseable
         return Arrays.equals(remoteFile.calculateMD5(Paths.get(outputPath)), remoteFile.md5digest);
     }
 
+    @Override
+    public void close() throws Exception 
+    {
+        if (socket != null)
+        {
+            socket.close();
+        }
+    }
+
+
     private InetAddress hostname;
     private Socket socket = null;
     private ObjectInputStream input = null;
@@ -125,12 +135,5 @@ public class Controller implements AutoCloseable
         return ok;
     }
 
-    @Override
-    public void close() throws Exception {
-        if (socket != null)
-        {
-            socket.close();
-        }
-    }
 
 }
