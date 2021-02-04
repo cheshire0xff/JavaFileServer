@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.Menu?>
@@ -9,6 +10,7 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.SeparatorMenuItem?>
 <?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
@@ -69,14 +71,21 @@
                 <Color blue="0.624" green="0.624" red="0.624" fx:id="x2" />
               </textFill>
             </Label>
-                  <ListView id="ListViewServers" layoutX="11.0" layoutY="52.0" prefHeight="499.0" prefWidth="200.0" />
+                  <ListView id="ListViewServers" layoutX="11.0" layoutY="52.0" prefHeight="347.0" prefWidth="200.0" />
+                  <Button id="connectButton" layoutX="148.0" layoutY="512.0" mnemonicParsing="false" text="Connect" />
+                  <Button id="newServerButton" layoutX="11.0" layoutY="512.0" mnemonicParsing="false" text="New" />
+                  <Label layoutX="11.0" layoutY="419.0" text="Name:" />
+                  <Label layoutX="6.0" layoutY="459.0" text="Address:" />
+                  <TextField id="newServerName" layoutX="62.0" layoutY="415.0" />
+                  <TextField id="newServerAddress" layoutX="62.0" layoutY="455.0" />
           </children>
         </AnchorPane>
         <ScrollPane prefHeight="-1.0" prefWidth="-1.0">
           <content>
             <AnchorPane id="Content" minHeight="-1.0" minWidth="-1.0" prefHeight="545.0" prefWidth="430.0">
               <children>
-                <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="View" textAlignment="CENTER" textFill="$x2" wrapText="false" />
+                <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Files" textAlignment="CENTER" textFill="$x2" wrapText="false" />
+                        <ListView id="fileListView" layoutX="14.0" layoutY="41.0" prefHeight="497.0" prefWidth="407.0" />
               </children>
             </AnchorPane>
           </content>
