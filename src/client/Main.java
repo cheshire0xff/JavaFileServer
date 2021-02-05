@@ -8,8 +8,10 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Optional;
+
 import javafx.scene.image.ImageView;
-import Controller.Controller;
+import ClientApi.ClientApi;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.application.Application;
@@ -23,16 +25,22 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextArea;
 
 public class Main extends Application {
 	private ListView<ServerChoice> listViewServers;
 	private Button newServerButton;
+	private Button deleteServerButton;
 	private TextField newServerName;
 	private TextField newServerAddress;
 	private Button connectButton;
 	private ListView<Object> listViewFiles;
+	private TextArea textAreaFileDetails;
+	private Label serverStatus;
 	
 	private ObservableList<ServerChoice> serversList;
 	private ObservableList<Object> filesList;
@@ -103,18 +111,23 @@ public class Main extends Application {
 			
 	}
 	
-	private void connect() {
+	private Boolean connect() {
 		filesList = new DirectoryContent<Object>();
 		ServerChoice server = listViewServers.getSelectionModel().getSelectedItem();
 		try {
-			Controller controller = new Controller(server.getAddres());
-			getFiles(controller.rootDir, "", controller);
+			ClientApi controller = new ClientApi(server.getAddres());
+			getFiles(controller.rootDir, controller);
+			serverStatus.setText("Connected");
+//			TODO jak zmieniæ klasê elementu z kodu
+//			serverStatus.clas
+			return true;
 		} catch (ClassNotFoundException | IOException e) {
 			errorDisplay(e);
+			return false;
 		}
 	}
 	
-	private void getFiles (RemoteDirectory pwd, String tabs,Controller controller) {
+	private void getFiles (RemoteDirectory pwd,ClientApi controller) {
 		if(controller != null) {
 	        for (var f : pwd.files)
 	        {
@@ -123,9 +136,9 @@ public class Main extends Application {
 	        }
 	        for (var f : pwd.dirs)
 	        {
-	            System.out.println(tabs + f.directoryName);
+//	            System.out.println(tabs + f.directoryName);
 	            filesList.add(f);
-	            getFiles(f, tabs + "\t", controller);
+	            getFiles(f, controller);
 	        }
 			    
 		}
@@ -163,11 +176,11 @@ public class Main extends Application {
 			        		setText("No path for class: " + item.getClass());
 			        	}
 			        	setGraphic(imageView);
-			        	//TODO Dokoñczyæ
 			        }
 			    }
 			});
 			listViewFiles.setItems(filesList);
+			//TODO skoñczyæ wyœwietlanie ikonek dla plików
 //			VBox box = new VBox(listViewFiles);
 //	        box.setAlignment(Pos.CENTER);
 			
@@ -177,6 +190,73 @@ public class Main extends Application {
 		}
 	}
 	
+	private void initialize(Scene scene) {
+		listViewServers = (ListView<ServerChoice>) scene.lookup("#ListViewServers");
+		newServerButton = (Button) scene.lookup("#newServerButton");
+		newServerName = (TextField) scene.lookup("#newServerName");
+		newServerAddress = (TextField) scene.lookup("#newServerAddress");
+		deleteServerButton = (Button) scene.lookup("#deleteServerButton");
+		connectButton = (Button) scene.lookup("#connectButton");
+		listViewFiles = (ListView<Object>) scene.lookup("#fileListView");
+		textAreaFileDetails = (TextArea) scene.lookup("#textAreaFileDetails");
+		serverStatus = (Label) scene.lookup("#serverStatus");
+		
+		
+		newServerButton.setOnMouseClicked(event ->{
+			try {
+				serversList.add(new ServerChoice(
+						newServerName.getText(),
+						InetAddress.getByName(newServerAddress.getText())));
+				saveServersList(new ArrayList<ServerChoice>(serversList));
+			} catch (UnknownHostException e) {
+				errorDisplay(e);
+			}
+		});
+		
+		deleteServerButton.setOnMouseClicked(event ->{
+			ServerChoice server = listViewServers.getSelectionModel().getSelectedItem();
+			
+			Alert alert = new Alert(AlertType.CONFIRMATION);
+			alert.setTitle("Confirmation Dialog");
+			alert.setHeaderText("Delete server");
+			alert.setContentText("Are you sure you want to remove this server: "
+					+ server.getServerName());
+
+			Optional<ButtonType> result = alert.showAndWait();
+			if (result.get() == ButtonType.OK){
+				
+				serversList.remove(server);
+				saveServersList(new ArrayList<ServerChoice>(serversList));
+			}
+			
+		});
+		
+		connectButton.setOnMouseClicked(event ->{
+			if(connect())
+				displayFiles();
+		});
+		
+		listViewFiles.setOnMouseClicked(event -> {
+			//TODO sprawdziæ jak zrobiæ obs³ugê rich text albo html
+			Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
+			String text;
+			if(remoteObject instanceof RemoteFileInfo) {
+				RemoteFileInfo remoteFile = (RemoteFileInfo) remoteObject;
+				text = "File name: " + remoteFile.filename;
+				textAreaFileDetails.setText(text);
+			}
+			else if(remoteObject instanceof RemoteDirectory) {
+				RemoteDirectory remoteDirectory = (RemoteDirectory) remoteObject;
+				text = "Directory name: " + remoteDirectory.directoryName;
+				
+			}
+			else {
+				text = "No path for class: " + remoteObject.getClass();
+				textAreaFileDetails.setText(text);
+			}
+		});
+	}
+	
 	@Override
 	public void start(Stage primaryStage) {
 		try {
@@ -184,36 +264,14 @@ public class Main extends Application {
 					.load(getClass()
 					.getResource("ui/MainWindow.fxml"));
 			Scene scene = new Scene(root, 800, 600);
+			root.getStylesheets().add(getClass().getResource("ui/MainWindow.css").toString());
 			
-			primaryStage.setTitle("FileServer App");
+			primaryStage.setTitle("FileServer App");		
 			primaryStage.setScene(scene);
 			primaryStage.show();
 			
-			listViewServers = (ListView<ServerChoice>) scene.lookup("#ListViewServers");
-			newServerButton = (Button) scene.lookup("#newServerButton");
-			newServerName = (TextField) scene.lookup("#newServerName");
-			newServerAddress = (TextField) scene.lookup("#newServerAddress");
-			connectButton = (Button) scene.lookup("#connectButton");
-			listViewFiles = (ListView<Object>) scene.lookup("#fileListView");
-			
+			initialize(scene);			
 			loadServersList();
-			
-			newServerButton.setOnMouseClicked(event ->{
-				try {
-					serversList.add(new ServerChoice(
-							newServerName.getText(),
-							InetAddress.getByName(newServerAddress.getText())));
-					saveServersList(new ArrayList<ServerChoice>(serversList));
-				} catch (UnknownHostException e) {
-					errorDisplay(e);
-				}
-			});
-			
-			connectButton.setOnMouseClicked(event ->{
-				connect();
-				displayFiles();
-			});
-			
 			
 		} catch(Exception e) {
 			errorDisplay(e);

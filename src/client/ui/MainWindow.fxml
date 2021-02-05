@@ -10,6 +10,7 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.SeparatorMenuItem?>
 <?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
@@ -72,12 +73,13 @@
               </textFill>
             </Label>
                   <ListView id="ListViewServers" layoutX="11.0" layoutY="52.0" prefHeight="347.0" prefWidth="200.0" />
-                  <Button id="connectButton" layoutX="148.0" layoutY="512.0" mnemonicParsing="false" text="Connect" />
-                  <Button id="newServerButton" layoutX="11.0" layoutY="512.0" mnemonicParsing="false" text="New" />
+                  <Button id="connectButton" layoutX="148.0" layoutY="15.0" mnemonicParsing="false" text="Connect" />
+                  <Button id="newServerButton" layoutX="168.0" layoutY="513.0" mnemonicParsing="false" text="New" />
                   <Label layoutX="11.0" layoutY="419.0" text="Name:" />
                   <Label layoutX="6.0" layoutY="459.0" text="Address:" />
                   <TextField id="newServerName" layoutX="62.0" layoutY="415.0" />
                   <TextField id="newServerAddress" layoutX="62.0" layoutY="455.0" />
+                  <Button id="deleteServerButton" layoutX="11.0" layoutY="513.0" mnemonicParsing="false" text="Delete" />
           </children>
         </AnchorPane>
         <ScrollPane prefHeight="-1.0" prefWidth="-1.0">
@@ -93,13 +95,14 @@
         <AnchorPane>
           <children>
             <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Details" textAlignment="CENTER" textFill="$x2" wrapText="false" />
+                  <TextArea id="textAreaFileDetails" editable="false" layoutX="11.0" layoutY="55.0" prefHeight="457.0" prefWidth="200.0" />
           </children>
         </AnchorPane>
       </items>
     </SplitPane>
     <HBox id="HBox" alignment="CENTER_LEFT" spacing="5.0" VBox.vgrow="NEVER">
       <children>
-        <Label maxHeight="1.7976931348623157E308" maxWidth="-1.0" text="Left status" HBox.hgrow="ALWAYS">
+        <Label id="serverStatus" maxHeight="1.7976931348623157E308" maxWidth="-1.0" text="Disconnected" HBox.hgrow="ALWAYS">
           <font>
             <Font size="11.0" fx:id="x3" />
           </font>

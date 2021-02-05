@@ -5,8 +5,8 @@ import java.net.InetAddress;
 
 class ServerChoice implements Serializable{
 	private static final long serialVersionUID = 1L;
-	public String  serverName;
-	public InetAddress addres;
+	private String  serverName;
+	private InetAddress addres;
 	
 	public ServerChoice() {
 		super();
