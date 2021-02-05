@@ -1,6 +1,8 @@
 package client;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -9,7 +11,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Optional;
-
 import javafx.scene.image.ImageView;
 import ClientApi.ClientApi;
 import javafx.scene.control.TextField;
@@ -29,6 +30,8 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.TextArea;
 
 public class Main extends Application {
@@ -40,13 +43,16 @@ public class Main extends Application {
 	private Button connectButton;
 	private ListView<Object> listViewFiles;
 	private TextArea textAreaFileDetails;
-	private Label serverStatus;
+	private Label serverStatusLabel;
+	private Label remoteObjectStatusLabel;
+	private MenuItem aboutMenuItem;
+	private MenuBar menuBar;
 	
 	private ObservableList<ServerChoice> serversList;
 	private ObservableList<Object> filesList;
 	
-	private final Image folderImg  = new Image("https://upload.wikimedia.org/wikipedia/commons/f/f1/Ruby_logo_64x64.png");
-    private final Image fileImg  = new Image("http://findicons.com/files/icons/832/social_and_web/64/apple.png");
+	private Image folderImg;
+    private Image fileImg;
 //    private final Image[] listOfImages = {folderImg, fileImg};
 	
 	private void errorDisplay(Exception e) {
@@ -117,7 +123,7 @@ public class Main extends Application {
 		try {
 			ClientApi controller = new ClientApi(server.getAddres());
 			getFiles(controller.rootDir, controller);
-			serverStatus.setText("Connected");
+			serverStatusLabel.setText("Connected");
 //			TODO jak zmieniæ klasê elementu z kodu
 //			serverStatus.clas
 			return true;
@@ -136,9 +142,8 @@ public class Main extends Application {
 	        }
 	        for (var f : pwd.dirs)
 	        {
-//	            System.out.println(tabs + f.directoryName);
 	            filesList.add(f);
-	            getFiles(f, controller);
+//	            getFiles(f, controller); //TODO Pobieraæ wszytkie pliki i je wyœwietlaæ na raz czy tylko p³asko i owieranie plikó
 	        }
 			    
 		}
@@ -175,18 +180,13 @@ public class Main extends Application {
 			        	else {
 			        		setText("No path for class: " + item.getClass());
 			        	}
+			        	imageView.setFitWidth(16);
+		        		imageView.setFitHeight(16);
 			        	setGraphic(imageView);
 			        }
 			    }
 			});
 			listViewFiles.setItems(filesList);
-			//TODO skoñczyæ wyœwietlanie ikonek dla plików
-//			VBox box = new VBox(listViewFiles);
-//	        box.setAlignment(Pos.CENTER);
-			
-//	        Scene scene = new Scene(box, 200, 200);
-//	        primaryStage.setScene(scene);
-//	        primaryStage.show();
 		}
 	}
 	
@@ -199,8 +199,21 @@ public class Main extends Application {
 		connectButton = (Button) scene.lookup("#connectButton");
 		listViewFiles = (ListView<Object>) scene.lookup("#fileListView");
 		textAreaFileDetails = (TextArea) scene.lookup("#textAreaFileDetails");
-		serverStatus = (Label) scene.lookup("#serverStatus");
+		serverStatusLabel = (Label) scene.lookup("#serverStatus");
+		remoteObjectStatusLabel = (Label) scene.lookup("#remoteObjectStatusLabel");
 		
+		try {
+			folderImg = new Image(
+					new FileInputStream(
+							new File(System.getProperty("user.dir")
+									+"/src/client/ui/folder.png")));
+			fileImg = new Image(
+					new FileInputStream(
+							new File(System.getProperty("user.dir")
+									+"/src/client/ui/file.png")));
+		} catch (FileNotFoundException e) {
+			errorDisplay(e);
+		}
 		
 		newServerButton.setOnMouseClicked(event ->{
 			try {
@@ -238,23 +251,32 @@ public class Main extends Application {
 		
 		listViewFiles.setOnMouseClicked(event -> {
 			//TODO sprawdziæ jak zrobiæ obs³ugê rich text albo html
+			
+			//TODO zrobiæ otwieranie folderów
+			//TODO zrobiæ pobieranie plików
 			Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
 			String text;
 			if(remoteObject instanceof RemoteFileInfo) {
 				RemoteFileInfo remoteFile = (RemoteFileInfo) remoteObject;
+				remoteObjectStatusLabel.setText(remoteFile.filename);
+				
 				text = "File name: " + remoteFile.filename;
 				textAreaFileDetails.setText(text);
 			}
 			else if(remoteObject instanceof RemoteDirectory) {
 				RemoteDirectory remoteDirectory = (RemoteDirectory) remoteObject;
-				text = "Directory name: " + remoteDirectory.directoryName;
+				remoteObjectStatusLabel.setText(remoteDirectory.directoryName);
 				
+				text = "Directory name: " + remoteDirectory.directoryName;
+				textAreaFileDetails.setText(text);
 			}
 			else {
 				text = "No path for class: " + remoteObject.getClass();
 				textAreaFileDetails.setText(text);
 			}
 		});
+		
+		//TODO dodaæ wiêcej funkcionalnoœci dla folderów/plików
 	}
 	
 	@Override
