@@ -15,7 +15,6 @@ import java.util.Optional;
 import javafx.scene.image.ImageView;
 import ClientApi.ClientApi;
 import ClientApi.DirectoryInfo;
-import client.Observer;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
@@ -53,6 +52,7 @@ public class Main extends Application {
 	private Button newFolderButton;
 	private Button uploadFileButton;
 	private Button refreshButton;
+	private Button openButton;
 	
 	private ObservableList<ServerChoice> serversList;
 	private ObservableList<Object> filesList;
@@ -163,7 +163,6 @@ public class Main extends Application {
         for (var f : pwd.dirs)
         {
             filesList.add(f);
-//	            getFiles(f, controller); //TODO Pobiera� wszytkie pliki i je wy�wietla� na raz czy tylko p�asko i owieranie plik�
         }
 	}
 	
@@ -222,6 +221,7 @@ public class Main extends Application {
 		newFolderButton = (Button) scene.lookup("#newFolderButton");
 		uploadFileButton = (Button) scene.lookup("#uploadFileButton");
 		refreshButton = (Button) scene.lookup("#refreshButton");
+		openButton = (Button) scene.lookup("#openButton");
 		
 		try {
 			folderImg = new Image(
@@ -245,7 +245,9 @@ public class Main extends Application {
 		imageViewRefresh.setFitHeight(16);
 		imageViewRefresh.setImage(refreshImg);
 		refreshButton.setGraphic(imageViewRefresh);
-		
+	}
+	
+	private void setEventHandlers() {
 		newServerButton.setOnMouseClicked(event ->{
 			try {
 				serversList.add(new ServerChoice(
@@ -307,10 +309,10 @@ public class Main extends Application {
 					try {
 						//TODO walidacja czy to �cie�ka do pliku
 //						System.out.println("R: " + result.get().toString() + " C: " + controller.currentDir.directoryName.toString());
-						String tmp = result.get().toString();
-						String tmp2 = tmp.substring(tmp.lastIndexOf("\\") + 1, tmp.length());
-						if(controller.uploadFile(tmp
-								, tmp2
+						String resultString = result.get().toString();
+						String fileName = resultString.substring(resultString.lastIndexOf("\\") + 1, resultString.length());
+						if(controller.uploadFile(resultString
+								, fileName
 								, new Observer("Uploading"))) {
 							filesList.clear();
 							getFilesOrdered(controller.getFiles());
@@ -319,6 +321,46 @@ public class Main extends Application {
 					} catch (ClassNotFoundException | IOException e) {
 						errorDisplay(e);
 					}
+				}
+			}
+		});
+		
+		openButton.setOnMouseClicked(event ->{
+			if(connect()){
+				Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
+				if(remoteObject instanceof FileInfo) {
+					FileInfo remoteFile = (FileInfo) remoteObject;
+					File folder = new File(System.getProperty("user.dir")+ "/dowload/"); 
+					folder.mkdirs(); //if dir exists no exepton is created
+					String path = System.getProperty("user.dir")
+							+ "/dowload/"
+							+ remoteFile.name;
+					String remotePath = remoteFile.path.toString();
+
+					try {
+						controller.downloadFile(path, remotePath, new Observer("Downlading"));
+						String os = System.getProperty("os.name");
+						if(os.contains("Windows")) {
+							Runtime.getRuntime().exec("explorer.exe " + new File(path).getAbsolutePath());
+						}
+						else {
+							System.out.print("No codepath for opening files for linux");
+						}
+					} catch (ClassNotFoundException | IOException e) {
+						errorDisplay(e);
+					}
+				}
+				else if(remoteObject instanceof DirectoryInfo) {
+					DirectoryInfo remoteDirectory = (DirectoryInfo) remoteObject;
+
+					filesList.clear();
+					try {
+						controller.refresh();
+					} catch (ClassNotFoundException | IOException e) {
+						errorDisplay(e);
+					}
+					getFilesOrdered(remoteDirectory);
+					listViewFiles.setItems(filesList);
 				}
 			}
 		});
@@ -343,7 +385,6 @@ public class Main extends Application {
 		listViewFiles.setOnMouseClicked(event -> {
 			//TODO sprawdzi� jak zrobi� obs�ug� rich text albo html
 			
-			//TODO zrobi� pobieranie plik�w
 			Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
 			String text;
 			if(remoteObject instanceof FileInfo) {
@@ -359,11 +400,6 @@ public class Main extends Application {
 				
 				text = "Directory name: " + remoteDirectory.name;
 				textAreaFileDetails.setText(text);
-				
-				filesList.clear();
-				getFilesOrdered(remoteDirectory);
-				
-				//TODO otworzy� folder i da� cofanie do nadrz�dnego
 			}
 			else {
 				if(remoteObject == null) {
@@ -387,13 +423,16 @@ public class Main extends Application {
 					.load(getClass()
 					.getResource("ui/MainWindow.fxml"));
 			Scene scene = new Scene(root, 900, 600);
-			root.getStylesheets().add(getClass().getResource("ui/MainWindow.css").toString());
+			root.getStylesheets().add(getClass()
+					.getResource("ui/MainWindow.css")
+					.toString());
 			
 			primaryStage.setTitle("FileServer App");		
 			primaryStage.setScene(scene);
 			primaryStage.show();
 			
-			initialize(scene);			
+			initialize(scene);
+			setEventHandlers();
 			loadServersList();
 			
 		} catch(Exception e) {
