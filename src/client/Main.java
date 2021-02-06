@@ -131,6 +131,14 @@ public class Main extends Application {
 		filesList = new DirectoryContent<Object>();
 		ServerChoice server = listViewServers.getSelectionModel().getSelectedItem();
 		try {
+		    if (controller != null)
+		    {
+		        try {
+                    controller.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+		    }
 			controller = new ClientApi(server.getAddres());
 			getFilesOrdered(controller.getFiles());
 			serverStatusLabel.setText("Connected");
@@ -329,7 +337,8 @@ public class Main extends Application {
 		});
 		
 		refreshButton.setOnMouseClicked(event ->{
-			if(connect()){
+		    if (controller != null)
+		    {
 				filesList.clear();
 				try {
 					controller.refresh();
@@ -337,7 +346,8 @@ public class Main extends Application {
 					errorDisplay(e);
 				}
 				getFilesOrdered(controller.getFiles());
-			}
+				listViewFiles.setItems(filesList);
+		    }
 		});
 		
 		listViewFiles.setOnMouseClicked(event -> {
