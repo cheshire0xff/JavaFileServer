@@ -53,6 +53,7 @@ public class Main extends Application {
 	private Button newFolderButton;
 	private Button uploadFileButton;
 	private Button refreshButton;
+	private Button openButton;
 	
 	private ObservableList<ServerChoice> serversList;
 	private ObservableList<Object> filesList;
@@ -144,7 +145,6 @@ public class Main extends Application {
 	
 	private void getFilesOrdered (RemoteDirectory pwd) {
 		if(controller != null) {
-			controller.currentDir = pwd;
 			for (var f : pwd.dirs)
 	        {
 	            filesList.add(f);
@@ -172,6 +172,7 @@ public class Main extends Application {
 	            filesList.add(f);
 //	            getFiles(f, controller); //TODO Pobieraæ wszytkie pliki i je wyœwietlaæ na raz czy tylko p³asko i owieranie plikó
 	        }
+	        listViewFiles.refresh();
 			    
 		}
 	}
@@ -231,6 +232,7 @@ public class Main extends Application {
 		newFolderButton = (Button) scene.lookup("#newFolderButton");
 		uploadFileButton = (Button) scene.lookup("#uploadFileButton");
 		refreshButton = (Button) scene.lookup("#refreshButton");
+		openButton = (Button) scene.lookup("#openButton");
 		
 		try {
 			folderImg = new Image(
@@ -254,7 +256,9 @@ public class Main extends Application {
 		imageViewRefresh.setFitHeight(16);
 		imageViewRefresh.setImage(refreshImg);
 		refreshButton.setGraphic(imageViewRefresh);
-		
+	}
+	
+	private void evenetHandlersDeclaretion() {
 		newServerButton.setOnMouseClicked(event ->{
 			try {
 				serversList.add(new ServerChoice(
@@ -316,10 +320,10 @@ public class Main extends Application {
 					try {
 						//TODO walidacja czy to œcie¿ka do pliku
 //						System.out.println("R: " + result.get().toString() + " C: " + controller.currentDir.directoryName.toString());
-						String tmp = result.get().toString();
-						String tmp2 = tmp.substring(tmp.lastIndexOf("\\") + 1, tmp.length());
-						if(controller.uploadFile(tmp
-								, tmp2
+						String resultString = result.get().toString();
+						String fileName = resultString.substring(resultString.lastIndexOf("\\") + 1, resultString.length());
+						if(controller.uploadFile(resultString
+								, fileName
 								, new Observer("Uploading"))) {
 							filesList.clear();
 							getFilesOrdered(controller.rootDir);
@@ -349,10 +353,44 @@ public class Main extends Application {
 			}
 		});
 		
+		openButton.setOnMouseClicked(event ->{
+			if(connect()){
+				Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
+				if(remoteObject instanceof RemoteFileInfo) {
+					RemoteFileInfo remoteFile = (RemoteFileInfo) remoteObject;
+					File folder = new File(System.getProperty("user.dir")+ "/dowload"); 
+					folder.mkdirs(); //if dir exists no exepton is created
+					String path = System.getProperty("user.dir")
+											+ "/dowload/"
+											+ remoteFile.filename;	
+					String remotePath = "" + remoteFile.filename;
+					
+					try {
+						controller.downloadFile(path, remotePath, new Observer("Downlading"));
+					} catch (ClassNotFoundException | IOException e) {
+						errorDisplay(e);
+					}
+				}
+				else if(remoteObject instanceof RemoteDirectory) {
+					RemoteDirectory remoteDirectory = (RemoteDirectory) remoteObject;
+					
+					controller.currentDirPath = controller.currentDirPath. + remoteDirectory.directoryName.toString();
+					
+					filesList.clear();
+					try {
+						controller.refresh();
+					} catch (ClassNotFoundException | IOException e) {
+						errorDisplay(e);
+					}
+					getFilesOrdered(remoteDirectory);
+					listViewFiles.setItems(filesList);
+				}
+			}
+		});
+		
 		listViewFiles.setOnMouseClicked(event -> {
 			//TODO sprawdziæ jak zrobiæ obs³ugê rich text albo html
 			
-			//TODO zrobiæ pobieranie plików
 			Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
 			String text;
 			if(remoteObject instanceof RemoteFileInfo) {
@@ -368,10 +406,7 @@ public class Main extends Application {
 				
 				text = "Directory name: " + remoteDirectory.directoryName;
 				textAreaFileDetails.setText(text);
-				
-				filesList.clear();
-				getFilesOrdered(remoteDirectory);
-				
+
 				//TODO otworzyæ folder i daæ cofanie do nadrzêdnego
 			}
 			else {
@@ -382,10 +417,8 @@ public class Main extends Application {
 					text = "No path for class: " + remoteObject.getClass();
 					textAreaFileDetails.setText(text);
 				}
-
 			}
-		});
-		
+		});		
 		//TODO dodaæ wiêcej funkcionalnoœci dla folderów/plików
 	}
 	
@@ -402,7 +435,8 @@ public class Main extends Application {
 			primaryStage.setScene(scene);
 			primaryStage.show();
 			
-			initialize(scene);			
+			initialize(scene);
+			evenetHandlersDeclaretion();
 			loadServersList();
 			
 		} catch(Exception e) {
