@@ -11,11 +11,20 @@ public class RemoteDirectory implements Serializable {
     public RemoteDirectory parentDir;
     public ArrayList<RemoteFileInfo> files = new ArrayList<RemoteFileInfo>();
     public ArrayList<RemoteDirectory> dirs = new ArrayList<RemoteDirectory>();
+
+    /**
+     * @param name
+     * @param parent
+     */
     public RemoteDirectory(String name, RemoteDirectory parent)
     {
         this.directoryName = name;
         this.parentDir = parent;
     }
+
+    /**
+     * @param name
+     */
     public RemoteDirectory(String name)
     {
         this(name, null);
@@ -31,6 +40,11 @@ public class RemoteDirectory implements Serializable {
         }
         return null;
     }
+
+    /**
+     * @param dirname
+     * @return
+     */
     RemoteDirectory tryGetDir(String dirname)
     {
         for (var f : dirs)
@@ -42,6 +56,11 @@ public class RemoteDirectory implements Serializable {
         }
         return null;
     }
+
+    /**
+     * @param path
+     * @return
+     */
     public RemoteFileInfo tryFindFile(String path)
     {
         var p = Paths.get(path);
@@ -65,6 +84,10 @@ public class RemoteDirectory implements Serializable {
         return curdir.tryGetFile(p.getFileName().toString());
     }
 
+    /**
+     * @param path
+     * @return
+     */
     public RemoteDirectory tryFindDir(String path)
     {
         var p = Paths.get(path);
@@ -87,11 +110,18 @@ public class RemoteDirectory implements Serializable {
         }
         return curdir.tryGetDir(p.getFileName().toString());
     }
-    
+
+    /**
+     * @param file
+     */
     public synchronized void addFile(RemoteFileInfo file)
     {
         files.add(file);
     }
+
+    /**
+     * @param dir
+     */
     public synchronized void addDir(RemoteDirectory dir)
     {
         dirs.add(dir);

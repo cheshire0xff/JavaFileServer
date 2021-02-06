@@ -18,14 +18,23 @@ public class RemoteFileInfo implements Serializable
     /*
      * should be constructed only by side containing actual file on disk
      */
-    
+
+    /**
+     * @param pathOnDisk
+     * @throws IOException
+     */
     public RemoteFileInfo(Path pathOnDisk) throws IOException {
         this.filename = pathOnDisk.getFileName().toString();
         md5digest = calculateMD5(pathOnDisk);
         sizeBytes = Files.size(pathOnDisk);
     }
-    
-    
+
+
+    /**
+     * @param filePathOnDisk
+     * @return
+     * @throws IOException
+     */
     public byte[] calculateMD5(Path filePathOnDisk) throws IOException
     {
         byte[] buf = new byte[TdpServer.downloadChunkSize];

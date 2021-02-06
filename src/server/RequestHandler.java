@@ -10,6 +10,10 @@ import java.util.Arrays;
 
 class RequestHandler implements Runnable
 {
+    /**
+     * @param socket
+     * @param rootPath
+     */
     public RequestHandler(Socket socket, String rootPath) {
         this.rootDirPath = rootPath;
         this.socket = socket;
@@ -18,6 +22,7 @@ class RequestHandler implements Runnable
     private Socket socket;
     private ObjectInputStream input = null;
     private ObjectOutputStream output = null;
+
     @Override
     /*
      * request:
@@ -93,25 +98,45 @@ class RequestHandler implements Runnable
             }
         }
     }
-    
+
+    /**
+     * @throws IOException
+     */
     void sendOk() throws IOException
     {
         sendMessage("OK");
     }
+
+    /**
+     * @throws IOException
+     */
     void sendFail() throws IOException
     {
         sendMessage("FAIL");
     }
+
+    /**
+     * @param m
+     * @throws IOException
+     */
     void sendMessage(String m) throws IOException
     {
         output.writeObject(m);
         output.flush();
     }
+
+    /**
+     * @throws IOException
+     */
     void handleGetRoot() throws IOException
     {
             output.writeObject(TdpServer.getRoot());
     }
-    
+
+    /**
+     * @param path
+     * @throws IOException
+     */
     void handleGetFile(String path) throws IOException
     {
         var p = Paths.get(rootDirPath, path);
@@ -124,7 +149,11 @@ class RequestHandler implements Runnable
         sendOk();
         TdpServer.sendFile(socket, p.toString(), null);
     }
-    
+
+    /**
+     * @param path
+     * @throws IOException
+     */
     void handleDeleteFile(String path) throws IOException
     {
         var p = Paths.get(rootDirPath, path);
@@ -141,7 +170,11 @@ class RequestHandler implements Runnable
         System.out.println(path);
         sendOk();
     }
-    
+
+    /**
+     * @param path
+     * @throws IOException
+     */
     void handleDeleteDir(String path) throws IOException
     {
         var dir = Paths.get(rootDirPath, path).toFile();
@@ -179,6 +212,12 @@ class RequestHandler implements Runnable
         }
     }
 
+    /**
+     * @param path
+     * @param input
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     void handleUpFile(String path, ObjectInputStream input) throws IOException, ClassNotFoundException
     {
         var file = (RemoteFileInfo)input.readObject();
@@ -210,6 +249,11 @@ class RequestHandler implements Runnable
         }
         
     }
+
+    /**
+     * @param path
+     * @throws IOException
+     */
     void handleUpDir(String path) throws IOException
     {
         var dir = Paths.get(rootDirPath, path).toFile();

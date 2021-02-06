@@ -22,13 +22,22 @@ import server.RemoteDirectory;
  * $ - finish
  */
 
+
 class Observer implements IObserver
 {
+    /**
+     * @param text
+     */
     Observer(String text)
     {
         this.text = text;
     }
     String text;
+
+    /**
+     * @param downloaded
+     * @param total
+     */
     @Override
     public void updateProgress(long downloaded, long total) {
         System.out.print(text + downloaded + "/" + total + " bytes\r");
@@ -63,6 +72,11 @@ public class ConsoleClient {
     {
         System.out.print(helpMessage);
     }
+
+    /**
+     * @param pwd
+     * @param tabs
+     */
     static void ls(RemoteDirectory pwd, String tabs)
     {
             for (var f : pwd.files)

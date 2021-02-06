@@ -56,7 +56,13 @@ public class TdpServer {
             System.out.println(e);
         }
     }
-    
+
+    /**
+     * @param s
+     * @param path
+     * @param observer
+     * @throws IOException
+     */
     public static void sendFile(Socket s, String path, IObserver observer) throws IOException
     {
         File f = new File(path);
@@ -82,6 +88,15 @@ public class TdpServer {
         }
         fileInput.close();
     }
+
+    /**
+     * @param s
+     * @param path
+     * @param totalSize
+     * @param observer
+     * @return
+     * @throws IOException
+     */
     public static Path receiveFile(Socket s, String path, long totalSize, IObserver observer) throws IOException
     {        
          var fileOnDisk = new File(path);
@@ -109,7 +124,8 @@ public class TdpServer {
         fileOutput.close();
         return filepath;
     }
-    
+
+
     public static synchronized void syncFileList()
     {
         fillDir(TdpServer.rootDirPath);
@@ -122,11 +138,18 @@ public class TdpServer {
     
     private static class ConsumerImpl implements Consumer<Path>
     {
+        /**
+         * @param dir
+         */
         ConsumerImpl(RemoteDirectory dir)
         {
             this.rootDir = dir;
         }
         RemoteDirectory rootDir;
+
+        /**
+         * @param f
+         */
         @Override
         public void accept(Path f) {
             try
@@ -152,7 +175,10 @@ public class TdpServer {
         }
         
     }
-    
+
+    /**
+     * @param path
+     */
     public static void fillDir(Path path)
     {
         rootDir = new RemoteDirectory("");
