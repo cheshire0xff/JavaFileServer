@@ -14,7 +14,8 @@ import java.util.ArrayList;
 import java.util.Optional;
 import javafx.scene.image.ImageView;
 import ClientApi.ClientApi;
-import ClientApi.Observer;
+import ClientApi.DirectoryInfo;
+import client.Observer;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
@@ -22,8 +23,7 @@ import javafx.application.Application;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
 import javafx.stage.Stage;
-import server.RemoteDirectory;
-import server.RemoteFileInfo;
+import ClientApi.FileInfo;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -132,9 +132,8 @@ public class Main extends Application {
 		ServerChoice server = listViewServers.getSelectionModel().getSelectedItem();
 		try {
 			controller = new ClientApi(server.getAddres());
-			getFilesOrdered(controller.rootDir);
+			getFilesOrdered(controller.getFiles());
 			serverStatusLabel.setText("Connected");
-			controller.currentDir = controller.rootDir;
 			return true;
 		} catch (ClassNotFoundException | IOException e) {
 			errorDisplay(e);
@@ -142,38 +141,30 @@ public class Main extends Application {
 		}
 	}
 	
-	private void getFilesOrdered (RemoteDirectory pwd) {
-		if(controller != null) {
-			controller.currentDir = pwd;
-			for (var f : pwd.dirs)
-	        {
-	            filesList.add(f);
-//	            getFiles(f, controller); //TODO Pobieraæ wszytkie pliki i je wyœwietlaæ na raz czy tylko p³asko i owieranie plikó
-	        }
-			
-	        for (var f : pwd.files)
-	        {
-	        	filesList.add(f);
-	        	
-	        }
-		}
+	private void getFilesOrdered (DirectoryInfo pwd) {
+        for (var f : pwd.dirs)
+        {
+            filesList.add(f);
+        }
+        
+        for (var f : pwd.files)
+        {
+            filesList.add(f);
+            
+        }
 	}
 	
-	private void getFiles (RemoteDirectory pwd) {
-		if(controller != null) {
-			controller.currentDir = pwd;
-	        for (var f : pwd.files)
-	        {
-	        	filesList.add(f);
-	        	
-	        }
-	        for (var f : pwd.dirs)
-	        {
-	            filesList.add(f);
-//	            getFiles(f, controller); //TODO Pobieraæ wszytkie pliki i je wyœwietlaæ na raz czy tylko p³asko i owieranie plikó
-	        }
-			    
-		}
+	private void getFiles (DirectoryInfo pwd) {
+        for (var f : pwd.files)
+        {
+            filesList.add(f);
+            
+        }
+        for (var f : pwd.dirs)
+        {
+            filesList.add(f);
+//	            getFiles(f, controller); //TODO Pobieraï¿½ wszytkie pliki i je wyï¿½wietlaï¿½ na raz czy tylko pï¿½asko i owieranie plikï¿½
+        }
 	}
 	
 	private void displayFiles () {
@@ -193,15 +184,15 @@ public class Main extends Application {
 			            setText(null);
 			            setGraphic(null);
 			        } else {
-			        	if(item instanceof RemoteFileInfo) {
-			        		RemoteFileInfo tmp = (RemoteFileInfo) item;
-			        		setText(tmp.filename);
+			        	if(item instanceof FileInfo) {
+			        		FileInfo tmp = (FileInfo) item;
+			        		setText(tmp.name);
 			        		imageView.setImage(fileImg);
 			        		
 			        	}
-			        	else if (item instanceof RemoteDirectory) {
-			        		RemoteDirectory tmp = (RemoteDirectory) item;
-			        		setText(tmp.directoryName);
+			        	else if (item instanceof DirectoryInfo) {
+			        		DirectoryInfo tmp = (DirectoryInfo) item;
+			        		setText(tmp.name);
 			        		imageView.setImage(folderImg);
 			        	}
 			        	else {
@@ -296,7 +287,7 @@ public class Main extends Application {
 					try {
 						controller.uploadDirectory(result.get());
 						filesList.clear();
-						getFilesOrdered(controller.rootDir);
+						getFilesOrdered(controller.getFiles());
 					} catch (ClassNotFoundException | IOException e) {
 						errorDisplay(e);
 					}
@@ -314,7 +305,7 @@ public class Main extends Application {
 				Optional<String> result = dialog.showAndWait();
 				if (result.isPresent()){
 					try {
-						//TODO walidacja czy to œcie¿ka do pliku
+						//TODO walidacja czy to ï¿½cieï¿½ka do pliku
 //						System.out.println("R: " + result.get().toString() + " C: " + controller.currentDir.directoryName.toString());
 						String tmp = result.get().toString();
 						String tmp2 = tmp.substring(tmp.lastIndexOf("\\") + 1, tmp.length());
@@ -322,7 +313,7 @@ public class Main extends Application {
 								, tmp2
 								, new Observer("Uploading"))) {
 							filesList.clear();
-							getFilesOrdered(controller.rootDir);
+							getFilesOrdered(controller.getFiles());
 						}
 						
 					} catch (ClassNotFoundException | IOException e) {
@@ -345,34 +336,34 @@ public class Main extends Application {
 				} catch (ClassNotFoundException | IOException e) {
 					errorDisplay(e);
 				}
-				getFilesOrdered(controller.rootDir);
+				getFilesOrdered(controller.getFiles());
 			}
 		});
 		
 		listViewFiles.setOnMouseClicked(event -> {
-			//TODO sprawdziæ jak zrobiæ obs³ugê rich text albo html
+			//TODO sprawdziï¿½ jak zrobiï¿½ obsï¿½ugï¿½ rich text albo html
 			
-			//TODO zrobiæ pobieranie plików
+			//TODO zrobiï¿½ pobieranie plikï¿½w
 			Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
 			String text;
-			if(remoteObject instanceof RemoteFileInfo) {
-				RemoteFileInfo remoteFile = (RemoteFileInfo) remoteObject;
-				remoteObjectStatusLabel.setText(remoteFile.filename);
+			if(remoteObject instanceof FileInfo) {
+				FileInfo remoteFile = (FileInfo) remoteObject;
+				remoteObjectStatusLabel.setText(remoteFile.name);
 				
-				text = "File name: " + remoteFile.filename;
+				text = "File name: " + remoteFile.name;
 				textAreaFileDetails.setText(text);
 			}
-			else if(remoteObject instanceof RemoteDirectory) {
-				RemoteDirectory remoteDirectory = (RemoteDirectory) remoteObject;
-				remoteObjectStatusLabel.setText(remoteDirectory.directoryName);
+			else if(remoteObject instanceof DirectoryInfo) {
+				DirectoryInfo remoteDirectory = (DirectoryInfo) remoteObject;
+				remoteObjectStatusLabel.setText(remoteDirectory.name);
 				
-				text = "Directory name: " + remoteDirectory.directoryName;
+				text = "Directory name: " + remoteDirectory.name;
 				textAreaFileDetails.setText(text);
 				
 				filesList.clear();
 				getFilesOrdered(remoteDirectory);
 				
-				//TODO otworzyæ folder i daæ cofanie do nadrzêdnego
+				//TODO otworzyï¿½ folder i daï¿½ cofanie do nadrzï¿½dnego
 			}
 			else {
 				if(remoteObject == null) {
@@ -386,7 +377,7 @@ public class Main extends Application {
 			}
 		});
 		
-		//TODO dodaæ wiêcej funkcionalnoœci dla folderów/plików
+		//TODO dodaï¿½ wiï¿½cej funkcionalnoï¿½ci dla folderï¿½w/plikï¿½w
 	}
 	
 	@Override
