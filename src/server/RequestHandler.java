@@ -59,32 +59,29 @@ class RequestHandler implements Runnable
                 {
                     handleGetRoot();
                 }
-                else if (line.startsWith("getfile"))
+                else if (line.startsWith("getfile "))
                 {
                     handleGetFile(line.split(" ", 2)[1]);
                 }
-                else if (line.startsWith("deletefile"))
+                else if (line.startsWith("deletefile "))
                 {
                     handleDeleteFile(line.split(" ", 2)[1]);
                 }
-                else if (line.startsWith("deletedir"))
+                else if (line.startsWith("deletedir "))
                 {
                     handleDeleteDir(line.split(" ", 2)[1]);
                 }
-                else if (line.startsWith("upfile"))
+                else if (line.startsWith("upfile "))
                 {
                     handleUpFile(line.split(" ", 2)[1], input);
                 }
-                else if (line.startsWith("updir"))
+                else if (line.startsWith("updir "))
                 {
                     handleUpDir(line.split(" ", 2)[1]);
                 }
-                else if (line.startsWith("deletedir"))
+                else if (line.startsWith("deletedir "))
                 {
                     handleDeleteDir(line.split(" ", 2)[1]);
-                }
-                else {
-                	System.out.println("No codepath for line="+line);
                 }
             } catch (Exception e) {
                 try {

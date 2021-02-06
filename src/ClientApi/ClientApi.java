@@ -16,9 +16,13 @@ import server.TdpServer;
 
 public class ClientApi implements AutoCloseable
 {
-    public RemoteDirectory rootDir;
-    public RemoteDirectory currentDir;
-
+    public DirectoryInfo getFiles()
+    {
+        var localRoot = new DirectoryInfo("");
+        getFiles(localRoot, rootDir);
+        return localRoot;
+    }
+    
     public ClientApi(InetAddress hostname) throws ClassNotFoundException, IOException
     {
         this.hostname = hostname;
@@ -46,7 +50,6 @@ public class ClientApi implements AutoCloseable
         TdpServer.sendFile(socket, inputPath, observer);
         var ok = checkOk();
         refresh();
-        upFile = null;
         return ok;
     }
     public boolean uploadDirectory(String directoryName ) throws IOException, ClassNotFoundException
@@ -136,6 +139,20 @@ public class ClientApi implements AutoCloseable
         refresh();
         return ok;
     }
+    private RemoteDirectory rootDir;
 
-
+    private void getFiles(DirectoryInfo inDir, RemoteDirectory remoteDir)
+    {
+        for (var f : remoteDir.files)
+        {
+            var file = new FileInfo(Paths.get(inDir.path.toString(),f.filename), f.sizeBytes);
+            inDir.files.add(file);
+        }
+        for (var f : remoteDir.dirs)
+        {
+            var dir = new DirectoryInfo(Paths.get(inDir.path.toString(), f.directoryName));
+            inDir.dirs.add(dir);
+            getFiles(dir, f);
+        }
+    }
 }

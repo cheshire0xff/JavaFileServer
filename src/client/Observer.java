@@ -1,4 +1,4 @@
-package ClientApi;
+package client;
 
 import server.IObserver;
 

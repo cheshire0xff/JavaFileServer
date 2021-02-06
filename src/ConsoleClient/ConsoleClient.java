@@ -5,9 +5,9 @@ import java.net.UnknownHostException;
 import java.util.Scanner;
 
 import ClientApi.ClientApi;
+import ClientApi.DirectoryInfo;
 import server.IObserver;
 import server.RemoteDirectory;
-import ClientApi.Observer;
 
 // TdbClient
 
@@ -22,6 +22,21 @@ import ClientApi.Observer;
  * ! - no answer needed
  * $ - finish
  */
+
+class Observer implements IObserver
+{
+    Observer(String text)
+    {
+        this.text = text;
+    }
+    String text;
+    @Override
+    public void updateProgress(long downloaded, long total) {
+        System.out.print(text + downloaded + "/" + total + " bytes\r");
+        System.out.flush();
+    }
+    
+}
 
 public class ConsoleClient {
     
@@ -49,15 +64,15 @@ public class ConsoleClient {
     {
         System.out.print(helpMessage);
     }
-    static void ls(RemoteDirectory pwd, String tabs)
+    static void ls(DirectoryInfo pwd, String tabs)
     {
             for (var f : pwd.files)
             {
-                System.out.println(tabs + f.filename);
+                System.out.println(tabs + f.name);
             }
             for (var f : pwd.dirs)
             {
-                System.out.println(tabs + f.directoryName);
+                System.out.println(tabs + f.name);
                 ls(f, tabs + "\t");
             }
     }
@@ -106,7 +121,7 @@ public class ConsoleClient {
                 }
                 else if (line.equals("ls"))
                 {
-                    ls(clientApi.rootDir, "");
+                    ls(clientApi.getFiles(), "");
                 }
                 else if (line.startsWith("download "))
                 {
