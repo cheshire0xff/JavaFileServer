@@ -1,5 +1,6 @@
 package client;
 
+import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -13,7 +14,9 @@ import java.util.ArrayList;
 import java.util.Optional;
 import javafx.scene.image.ImageView;
 import ClientApi.ClientApi;
+import ClientApi.Observer;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.application.Application;
 import javafx.collections.ObservableList;
@@ -47,15 +50,22 @@ public class Main extends Application {
 	private Label remoteObjectStatusLabel;
 	private MenuItem aboutMenuItem;
 	private MenuBar menuBar;
+	private Button newFolderButton;
+	private Button uploadFileButton;
+	private Button refreshButton;
 	
 	private ObservableList<ServerChoice> serversList;
 	private ObservableList<Object> filesList;
 	
 	private Image folderImg;
     private Image fileImg;
-//    private final Image[] listOfImages = {folderImg, fileImg};
+    private Image refreshImg;
+    
+    ClientApi controller;
 	
 	private void errorDisplay(Exception e) {
+		e.printStackTrace();
+		
 		Alert alert = new Alert(AlertType.ERROR);
 		alert.setTitle("Error Dialog");
 		alert.setHeaderText("Execption occured in FileServer App");
@@ -121,11 +131,10 @@ public class Main extends Application {
 		filesList = new DirectoryContent<Object>();
 		ServerChoice server = listViewServers.getSelectionModel().getSelectedItem();
 		try {
-			ClientApi controller = new ClientApi(server.getAddres());
-			getFiles(controller.rootDir, controller);
+			controller = new ClientApi(server.getAddres());
+			getFilesOrdered(controller.rootDir);
 			serverStatusLabel.setText("Connected");
-//			TODO jak zmieniæ klasê elementu z kodu
-//			serverStatus.clas
+			controller.currentDir = controller.rootDir;
 			return true;
 		} catch (ClassNotFoundException | IOException e) {
 			errorDisplay(e);
@@ -133,8 +142,26 @@ public class Main extends Application {
 		}
 	}
 	
-	private void getFiles (RemoteDirectory pwd,ClientApi controller) {
+	private void getFilesOrdered (RemoteDirectory pwd) {
 		if(controller != null) {
+			controller.currentDir = pwd;
+			for (var f : pwd.dirs)
+	        {
+	            filesList.add(f);
+//	            getFiles(f, controller); //TODO Pobieraæ wszytkie pliki i je wyœwietlaæ na raz czy tylko p³asko i owieranie plikó
+	        }
+			
+	        for (var f : pwd.files)
+	        {
+	        	filesList.add(f);
+	        	
+	        }
+		}
+	}
+	
+	private void getFiles (RemoteDirectory pwd) {
+		if(controller != null) {
+			controller.currentDir = pwd;
 	        for (var f : pwd.files)
 	        {
 	        	filesList.add(f);
@@ -201,19 +228,32 @@ public class Main extends Application {
 		textAreaFileDetails = (TextArea) scene.lookup("#textAreaFileDetails");
 		serverStatusLabel = (Label) scene.lookup("#serverStatus");
 		remoteObjectStatusLabel = (Label) scene.lookup("#remoteObjectStatusLabel");
+		newFolderButton = (Button) scene.lookup("#newFolderButton");
+		uploadFileButton = (Button) scene.lookup("#uploadFileButton");
+		refreshButton = (Button) scene.lookup("#refreshButton");
 		
 		try {
 			folderImg = new Image(
 					new FileInputStream(
 							new File(System.getProperty("user.dir")
-									+"/src/client/ui/folder.png")));
+									+ "/src/client/ui/folder.png")));
 			fileImg = new Image(
 					new FileInputStream(
 							new File(System.getProperty("user.dir")
-									+"/src/client/ui/file.png")));
+									+ "/src/client/ui/file.png")));
+			refreshImg = new Image(
+					new FileInputStream(
+							new File(System.getProperty("user.dir")
+									+ "/src/client/ui/refresh.png")));
 		} catch (FileNotFoundException e) {
 			errorDisplay(e);
 		}
+		
+		ImageView imageViewRefresh = new ImageView();
+		imageViewRefresh.setFitWidth(16);
+		imageViewRefresh.setFitHeight(16);
+		imageViewRefresh.setImage(refreshImg);
+		refreshButton.setGraphic(imageViewRefresh);
 		
 		newServerButton.setOnMouseClicked(event ->{
 			try {
@@ -242,6 +282,54 @@ public class Main extends Application {
 				saveServersList(new ArrayList<ServerChoice>(serversList));
 			}
 			
+		});	
+		
+		newFolderButton.setOnMouseClicked(event ->{
+			if(controller != null) {
+				TextInputDialog dialog = new TextInputDialog("New folder");
+				dialog.setTitle("Create folder");
+				dialog.setHeaderText("Please enter new folder name");
+				dialog.setContentText("New folder name:");
+
+				Optional<String> result = dialog.showAndWait();
+				if (result.isPresent()){
+					try {
+						controller.uploadDirectory(result.get());
+						filesList.clear();
+						getFilesOrdered(controller.rootDir);
+					} catch (ClassNotFoundException | IOException e) {
+						errorDisplay(e);
+					}
+				}
+			}
+		});
+		
+		uploadFileButton.setOnMouseClicked(event ->{
+			if(controller != null) {
+				TextInputDialog dialog = new TextInputDialog("New file");
+				dialog.setTitle("Upload file");
+				dialog.setHeaderText("Please enter path to file to upload");
+				dialog.setContentText("Path:");
+
+				Optional<String> result = dialog.showAndWait();
+				if (result.isPresent()){
+					try {
+						//TODO walidacja czy to œcie¿ka do pliku
+//						System.out.println("R: " + result.get().toString() + " C: " + controller.currentDir.directoryName.toString());
+						String tmp = result.get().toString();
+						String tmp2 = tmp.substring(tmp.lastIndexOf("\\") + 1, tmp.length());
+						if(controller.uploadFile(tmp
+								, tmp2
+								, new Observer("Uploading"))) {
+							filesList.clear();
+							getFilesOrdered(controller.rootDir);
+						}
+						
+					} catch (ClassNotFoundException | IOException e) {
+						errorDisplay(e);
+					}
+				}
+			}
 		});
 		
 		connectButton.setOnMouseClicked(event ->{
@@ -249,10 +337,21 @@ public class Main extends Application {
 				displayFiles();
 		});
 		
+		refreshButton.setOnMouseClicked(event ->{
+			if(connect()){
+				filesList.clear();
+				try {
+					controller.refresh();
+				} catch (ClassNotFoundException | IOException e) {
+					errorDisplay(e);
+				}
+				getFilesOrdered(controller.rootDir);
+			}
+		});
+		
 		listViewFiles.setOnMouseClicked(event -> {
 			//TODO sprawdziæ jak zrobiæ obs³ugê rich text albo html
 			
-			//TODO zrobiæ otwieranie folderów
 			//TODO zrobiæ pobieranie plików
 			Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
 			String text;
@@ -269,10 +368,21 @@ public class Main extends Application {
 				
 				text = "Directory name: " + remoteDirectory.directoryName;
 				textAreaFileDetails.setText(text);
+				
+				filesList.clear();
+				getFilesOrdered(remoteDirectory);
+				
+				//TODO otworzyæ folder i daæ cofanie do nadrzêdnego
 			}
 			else {
-				text = "No path for class: " + remoteObject.getClass();
-				textAreaFileDetails.setText(text);
+				if(remoteObject == null) {
+					System.out.println("remoteObject == null");
+				}
+				else {
+					text = "No path for class: " + remoteObject.getClass();
+					textAreaFileDetails.setText(text);
+				}
+
 			}
 		});
 		
@@ -285,7 +395,7 @@ public class Main extends Application {
 			Parent root = FXMLLoader
 					.load(getClass()
 					.getResource("ui/MainWindow.fxml"));
-			Scene scene = new Scene(root, 800, 600);
+			Scene scene = new Scene(root, 900, 600);
 			root.getStylesheets().add(getClass().getResource("ui/MainWindow.css").toString());
 			
 			primaryStage.setTitle("FileServer App");		

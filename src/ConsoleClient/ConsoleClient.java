@@ -7,6 +7,7 @@ import java.util.Scanner;
 import ClientApi.ClientApi;
 import server.IObserver;
 import server.RemoteDirectory;
+import ClientApi.Observer;
 
 // TdbClient
 
@@ -21,21 +22,6 @@ import server.RemoteDirectory;
  * ! - no answer needed
  * $ - finish
  */
-
-class Observer implements IObserver
-{
-    Observer(String text)
-    {
-        this.text = text;
-    }
-    String text;
-    @Override
-    public void updateProgress(long downloaded, long total) {
-        System.out.print(text + downloaded + "/" + total + " bytes\r");
-        System.out.flush();
-    }
-    
-}
 
 public class ConsoleClient {
     

@@ -86,8 +86,11 @@
           <content>
             <AnchorPane id="Content" minHeight="-1.0" minWidth="-1.0" prefHeight="545.0" prefWidth="430.0">
               <children>
-                <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Files" textAlignment="CENTER" textFill="$x2" wrapText="false" />
-                        <ListView id="fileListView" layoutX="14.0" layoutY="41.0" prefHeight="497.0" prefWidth="407.0" />
+                <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Content" textAlignment="CENTER" textFill="$x2" wrapText="false" />
+                        <ListView id="fileListView" layoutX="14.0" layoutY="41.0" prefHeight="471.0" prefWidth="407.0" />
+                        <Button id="newFolderButton" layoutX="346.0" layoutY="519.0" mnemonicParsing="false" text="New folder" />
+                        <Button id="uploadFileButton" layoutX="262.0" layoutY="519.0" mnemonicParsing="false" text="Upload file" />
+                        <Button id="refreshButton" layoutX="85.0" layoutY="15.0" mnemonicParsing="false" />
               </children>
             </AnchorPane>
           </content>

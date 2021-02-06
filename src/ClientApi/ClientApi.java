@@ -17,6 +17,7 @@ import server.TdpServer;
 public class ClientApi implements AutoCloseable
 {
     public RemoteDirectory rootDir;
+    public RemoteDirectory currentDir;
 
     public ClientApi(InetAddress hostname) throws ClassNotFoundException, IOException
     {
@@ -45,6 +46,7 @@ public class ClientApi implements AutoCloseable
         TdpServer.sendFile(socket, inputPath, observer);
         var ok = checkOk();
         refresh();
+        upFile = null;
         return ok;
     }
     public boolean uploadDirectory(String directoryName ) throws IOException, ClassNotFoundException
