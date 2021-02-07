@@ -354,9 +354,8 @@ public class Main extends Application {
 				if (file != null){
 					try {
 						String resultString = file.getPath();
-						String fileName = resultString.substring(resultString.lastIndexOf("\\") + 1, resultString.length());
 						if(controller.uploadFile(resultString
-								, fileName
+								, file.getName()
 								, new Observer("Uploading"))) {
 							filesList.clear();
 							getFilesOrdered(controller.getFiles());
