@@ -413,47 +413,38 @@ public class Main extends Application {
 		});
 		
 		deleteButton.setOnMouseClicked(event ->{
-			if(controller != null){
-				Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
-				if(remoteObject instanceof FileInfo) {
-					FileInfo remoteFile = (FileInfo) remoteObject;
-					String remotePath = remoteFile.path.toString();
-					try {
-						controller.deleteFile(remoteFile.path.toString());
-					} catch (ClassNotFoundException | IOException e) {
-						errorDisplay(e);
-					}
-
-				}
-				else if(remoteObject instanceof DirectoryInfo) {
-					DirectoryInfo remoteDirectory = (DirectoryInfo) remoteObject;
-					try {
-						controller.deleteDir(remoteDirectory.path.toString());
-					} catch (ClassNotFoundException | IOException e) {
-						errorDisplay(e);
-					}
-
-					filesList.clear();
-					try {
-						controller.refresh();
-					} catch (ClassNotFoundException | IOException e) {
-						errorDisplay(e);
-					}
-					getFilesOrdered(remoteDirectory);
-					listViewFiles.setItems(filesList);
-				}
-				
-				filesList.clear();
-				try {
-					controller.refresh();
-				} catch (ClassNotFoundException | IOException e) {
-					errorDisplay(e);
-				}
-				displayFiles();
-				listViewFiles.setItems(filesList);
-			}
-			else 
+		    if (controller == null)
+		    {
 				System.out.println("controller == null");
+		    }
+            Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
+            if(remoteObject instanceof FileInfo) {
+                FileInfo remoteFile = (FileInfo) remoteObject;
+                String remotePath = remoteFile.path.toString();
+                try {
+                    controller.deleteFile(remotePath);
+                } catch (ClassNotFoundException | IOException e) {
+                    errorDisplay(e);
+                }
+            }
+            else if(remoteObject instanceof DirectoryInfo) {
+                DirectoryInfo remoteDirectory = (DirectoryInfo) remoteObject;
+                try {
+                    controller.deleteDir(remoteDirectory.path.toString());
+                } catch (ClassNotFoundException | IOException e) {
+                    errorDisplay(e);
+                }
+            }
+            
+            filesList.clear();
+            try {
+                controller.refresh();
+            } catch (ClassNotFoundException | IOException e) {
+                errorDisplay(e);
+            }
+            getFilesOrdered(controller.getFiles());
+            displayFiles();
+            listViewFiles.setItems(filesList);
 		});
 		
 		connectButton.setOnMouseClicked(event ->{
@@ -479,20 +470,12 @@ public class Main extends Application {
 		});
 		
 		homeButton.setOnMouseClicked(event ->{
-			if(controller != null){
-				filesList.clear();
-				try {
-					controller = new ClientApi(currentServer.getAddres());
-					getFilesOrdered(controller.getFiles());
-					serverStatusLabel.setText("Connected");
-
-					displayFiles();
-				} catch (ClassNotFoundException | IOException e) {
-					errorDisplay(e);
-				}
-			}
-			else 
-				System.out.println("controller == null");
+		    if (currentServer != null)
+		    {
+		        filesList.clear();
+		        connect(currentServer);
+		        displayFiles();
+		    }
 		});
 		
 		listViewFiles.setOnMouseClicked(event -> {
