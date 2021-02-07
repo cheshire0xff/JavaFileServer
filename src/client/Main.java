@@ -374,10 +374,10 @@ public class Main extends Application {
 				Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
 				if(remoteObject instanceof FileInfo) {
 					FileInfo remoteFile = (FileInfo) remoteObject;
-					File folder = new File(System.getProperty("user.dir")+ "/dowload/"); 
+					File folder = new File(System.getProperty("user.dir")+ "/download/"); 
 					folder.mkdirs(); //if dir exists no exepton is created
 					String path = System.getProperty("user.dir")
-							+ "/dowload/"
+							+ "/download/"
 							+ remoteFile.name;
 					String remotePath = remoteFile.path.toString();
 
@@ -469,17 +469,20 @@ public class Main extends Application {
 		});
 		
 		homeButton.setOnMouseClicked(event ->{
-		    if (currentServer != null)
-		    {
-		        filesList.clear();
-		        connect(currentServer);
-		        displayFiles();
-		    }
+			if(controller != null){
+				filesList.clear();
+				try {
+					controller.refresh();
+				} catch (ClassNotFoundException | IOException e) {
+					errorDisplay(e);
+				}
+				getFilesOrdered(controller.getFiles());
+			}
+			else 
+				System.out.println("controller == null");
 		});
 		
-		listViewFiles.setOnMouseClicked(event -> {
-			//TODO sprawdzi� jak zrobi� obs�ug� rich text albo html
-			
+		listViewFiles.setOnMouseClicked(event -> {			
 			Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
 			String text;
 			if(remoteObject instanceof FileInfo) {
