@@ -20,6 +20,7 @@ import javafx.scene.image.Image;
 import javafx.application.Application;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import ClientApi.FileInfo;
 import javafx.scene.Parent;
@@ -62,7 +63,8 @@ public class Main extends Application {
 	private Image folderImg;
     private Image fileImg;
     
-    ClientApi controller;
+    private ClientApi controller;
+    private Stage primaryStage;
 	
 	private void errorDisplay(Exception e) {
 		e.printStackTrace();
@@ -88,15 +90,22 @@ public class Main extends Application {
 	private Boolean loadServersList() throws UnknownHostException {
 		ArrayList<ServerChoice> servers = new ArrayList<ServerChoice>();
 		
-		try (ObjectInputStream inputStream = 
-				new ObjectInputStream(
-					new FileInputStream("savedServers.bin"))) {			
-				servers = (ArrayList<ServerChoice>) inputStream.readObject();
-		} catch (Exception e) {
-			errorDisplay(e);
+		File savedServers = new File("savedServers.bin");
+		if (savedServers.exists()) {
+			try (ObjectInputStream inputStream = 
+					new ObjectInputStream(
+						new FileInputStream("savedServers.bin"))) {			
+					servers = (ArrayList<ServerChoice>) inputStream.readObject();
+			} catch (Exception e) {
+				errorDisplay(e);
+			}
 		}
+		else
 		
-		if(servers == null || servers.size() == 0 || servers.isEmpty()) {
+		if(servers == null 
+			|| servers.size() == 0 
+			|| servers.isEmpty() 
+			|| !savedServers.exists()) {
 			System.out.println("ListViewServers == null");
 			servers = new ArrayList<ServerChoice>();
 			servers.add(new ServerChoice("localhost", InetAddress.getLocalHost()));
@@ -276,32 +285,42 @@ public class Main extends Application {
 	
 	private void setEventHandlers() {
 		newServerButton.setOnMouseClicked(event ->{
-			try {
-				serversList.add(new ServerChoice(
-						newServerName.getText(),
-						InetAddress.getByName(newServerAddress.getText())));
-				saveServersList(new ArrayList<ServerChoice>(serversList));
-			} catch (UnknownHostException e) {
-				errorDisplay(e);
+			if(newServerName.getText().length() != 0 
+					&& newServerAddress.getText().length() != 0){
+				try {
+					serversList.add(new ServerChoice(
+							newServerName.getText(),
+							InetAddress.getByName(newServerAddress.getText())));
+					saveServersList(new ArrayList<ServerChoice>(serversList));
+				} catch (UnknownHostException e) {
+					errorDisplay(e);
+				}
 			}
+			if (newServerName.getText().length() == 0 )
+				System.out.println("newServerName == null");
+			if (newServerAddress.getText().length() == 0)
+				System.out.println("newServerAddress == null");
 		});
 		
 		deleteServerButton.setOnMouseClicked(event ->{
 			ServerChoice server = listViewServers.getSelectionModel().getSelectedItem();
 			
-			Alert alert = new Alert(AlertType.CONFIRMATION);
-			alert.setTitle("Confirmation Dialog");
-			alert.setHeaderText("Delete server");
-			alert.setContentText("Are you sure you want to remove this server: "
-					+ server.getServerName());
+			if(server != null) {
+				Alert alert = new Alert(AlertType.CONFIRMATION);
+				alert.setTitle("Confirmation Dialog");
+				alert.setHeaderText("Delete server");
+				alert.setContentText("Are you sure you want to remove this server: "
+						+ server.getServerName());
 
-			Optional<ButtonType> result = alert.showAndWait();
-			if (result.get() == ButtonType.OK){
-				
-				serversList.remove(server);
-				saveServersList(new ArrayList<ServerChoice>(serversList));
+				Optional<ButtonType> result = alert.showAndWait();
+				if (result.get() == ButtonType.OK){
+					
+					serversList.remove(server);
+					saveServersList(new ArrayList<ServerChoice>(serversList));
+				}
 			}
-			
+			else
+				System.out.println("server == null");
 		});	
 		
 		newFolderButton.setOnMouseClicked(event ->{
@@ -322,20 +341,19 @@ public class Main extends Application {
 					}
 				}
 			}
+			else 
+				System.out.println("controller == null");
 		});
 		
 		uploadFileButton.setOnMouseClicked(event ->{
-			if(controller != null) {
-				TextInputDialog dialog = new TextInputDialog("New file");
-				dialog.setTitle("Upload file");
-				dialog.setHeaderText("Please enter path to file to upload");
-				dialog.setContentText("Path:");
-
-				Optional<String> result = dialog.showAndWait();
-				if (result.isPresent()){
+			if(controller != null) {				
+				FileChooser fileChooser = new FileChooser();
+				fileChooser.setTitle("Open file to upload");
+				
+				File file = fileChooser.showOpenDialog(primaryStage);
+				if (file != null){
 					try {
-						//TODO walidacja czy to �cie�ka do pliku
-						String resultString = result.get().toString();
+						String resultString = file.getPath();
 						String fileName = resultString.substring(resultString.lastIndexOf("\\") + 1, resultString.length());
 						if(controller.uploadFile(resultString
 								, fileName
@@ -348,6 +366,8 @@ public class Main extends Application {
 					}
 				}
 			}
+			else 
+				System.out.println("controller == null");
 		});
 		
 		openButton.setOnMouseClicked(event ->{
@@ -388,6 +408,8 @@ public class Main extends Application {
 					listViewFiles.setItems(filesList);
 				}
 			}
+			else 
+				System.out.println("controller == null");
 		});
 		
 		deleteButton.setOnMouseClicked(event ->{
@@ -430,12 +452,16 @@ public class Main extends Application {
 				displayFiles();
 				listViewFiles.setItems(filesList);
 			}
+			else 
+				System.out.println("controller == null");
 		});
 		
 		connectButton.setOnMouseClicked(event ->{
 			ServerChoice server = listViewServers.getSelectionModel().getSelectedItem();
-			if(connect(server))
+			if(server != null && connect(server))
 				displayFiles();
+			else if(server == null)
+				System.out.println("Selected server == null");
 		});
 		
 		refreshButton.setOnMouseClicked(event ->{
@@ -448,6 +474,8 @@ public class Main extends Application {
 				}
 				getFilesOrdered(controller.getFiles());
 			}
+			else 
+				System.out.println("controller == null");
 		});
 		
 		homeButton.setOnMouseClicked(event ->{
@@ -463,6 +491,8 @@ public class Main extends Application {
 					errorDisplay(e);
 				}
 			}
+			else 
+				System.out.println("controller == null");
 		});
 		
 		listViewFiles.setOnMouseClicked(event -> {
@@ -510,8 +540,6 @@ public class Main extends Application {
 
 			}
 		});
-		
-		//TODO doda� wi�cej funkcionalno�ci dla folder�w/plik�w
 	}
 	
 	@Override
@@ -528,6 +556,7 @@ public class Main extends Application {
 			primaryStage.setTitle("FileServer App");		
 			primaryStage.setScene(scene);
 			primaryStage.show();
+			this.primaryStage = primaryStage;
 			
 			initialize(scene);
 			setEventHandlers();
