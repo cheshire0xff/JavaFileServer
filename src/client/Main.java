@@ -1,6 +1,5 @@
 package client;
 
-import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -53,13 +52,15 @@ public class Main extends Application {
 	private Button uploadFileButton;
 	private Button refreshButton;
 	private Button openButton;
+	private Button deleteButton;
+	private Button homeButton;
+	private ServerChoice currentServer;
 	
 	private ObservableList<ServerChoice> serversList;
 	private ObservableList<Object> filesList;
 	
 	private Image folderImg;
     private Image fileImg;
-    private Image refreshImg;
     
     ClientApi controller;
 	
@@ -127,19 +128,28 @@ public class Main extends Application {
 			
 	}
 	
-	private Boolean connect() {
+	private Boolean connect(ServerChoice server) {
 		filesList = new DirectoryContent<Object>();
-		ServerChoice server = listViewServers.getSelectionModel().getSelectedItem();
 		try {
+			if (controller != null)
+		    {
+		        try {
+                    controller.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+		    }
+			
 			controller = new ClientApi(server.getAddres());
 			getFilesOrdered(controller.getFiles());
 			serverStatusLabel.setText("Connected");
+			currentServer = server;
 			return true;
 		} catch (ClassNotFoundException | IOException e) {
 			errorDisplay(e);
 			return false;
 		}
-	}
+	}	
 	
 	private void getFilesOrdered (DirectoryInfo pwd) {
         for (var f : pwd.dirs)
@@ -222,6 +232,11 @@ public class Main extends Application {
 		uploadFileButton = (Button) scene.lookup("#uploadFileButton");
 		refreshButton = (Button) scene.lookup("#refreshButton");
 		openButton = (Button) scene.lookup("#openButton");
+		deleteButton = (Button) scene.lookup("#deleteButton");
+		homeButton = (Button) scene.lookup("#homeButton");
+		
+	    Image refreshImg;
+	    Image backImg;
 		
 		try {
 			folderImg = new Image(
@@ -236,15 +251,27 @@ public class Main extends Application {
 					new FileInputStream(
 							new File(System.getProperty("user.dir")
 									+ "/src/client/ui/refresh.png")));
+			
+			ImageView imageViewRefresh = new ImageView();
+			imageViewRefresh.setFitWidth(16);
+			imageViewRefresh.setFitHeight(16);
+			imageViewRefresh.setImage(refreshImg);
+			refreshButton.setGraphic(imageViewRefresh);
+			
+			backImg = new Image(
+					new FileInputStream(
+							new File(System.getProperty("user.dir")
+									+ "/src/client/ui/home.png")));
+			
+			ImageView imageViewBack = new ImageView();
+			imageViewBack.setFitWidth(16);
+			imageViewBack.setFitHeight(16);
+			imageViewBack.setImage(backImg);
+			homeButton.setGraphic(imageViewBack);
+			
 		} catch (FileNotFoundException e) {
 			errorDisplay(e);
 		}
-		
-		ImageView imageViewRefresh = new ImageView();
-		imageViewRefresh.setFitWidth(16);
-		imageViewRefresh.setFitHeight(16);
-		imageViewRefresh.setImage(refreshImg);
-		refreshButton.setGraphic(imageViewRefresh);
 	}
 	
 	private void setEventHandlers() {
@@ -308,7 +335,6 @@ public class Main extends Application {
 				if (result.isPresent()){
 					try {
 						//TODO walidacja czy to �cie�ka do pliku
-//						System.out.println("R: " + result.get().toString() + " C: " + controller.currentDir.directoryName.toString());
 						String resultString = result.get().toString();
 						String fileName = resultString.substring(resultString.lastIndexOf("\\") + 1, resultString.length());
 						if(controller.uploadFile(resultString
@@ -317,7 +343,6 @@ public class Main extends Application {
 							filesList.clear();
 							getFilesOrdered(controller.getFiles());
 						}
-						
 					} catch (ClassNotFoundException | IOException e) {
 						errorDisplay(e);
 					}
@@ -326,7 +351,7 @@ public class Main extends Application {
 		});
 		
 		openButton.setOnMouseClicked(event ->{
-			if(connect()){
+			if(controller != null){
 				Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
 				if(remoteObject instanceof FileInfo) {
 					FileInfo remoteFile = (FileInfo) remoteObject;
@@ -365,13 +390,56 @@ public class Main extends Application {
 			}
 		});
 		
+		deleteButton.setOnMouseClicked(event ->{
+			if(controller != null){
+				Object remoteObject = listViewFiles.getSelectionModel().getSelectedItem();
+				if(remoteObject instanceof FileInfo) {
+					FileInfo remoteFile = (FileInfo) remoteObject;
+					String remotePath = remoteFile.path.toString();
+					try {
+						controller.deleteFile(remoteFile.path.toString());
+					} catch (ClassNotFoundException | IOException e) {
+						errorDisplay(e);
+					}
+
+				}
+				else if(remoteObject instanceof DirectoryInfo) {
+					DirectoryInfo remoteDirectory = (DirectoryInfo) remoteObject;
+					try {
+						controller.deleteDir(remoteDirectory.path.toString());
+					} catch (ClassNotFoundException | IOException e) {
+						errorDisplay(e);
+					}
+
+					filesList.clear();
+					try {
+						controller.refresh();
+					} catch (ClassNotFoundException | IOException e) {
+						errorDisplay(e);
+					}
+					getFilesOrdered(remoteDirectory);
+					listViewFiles.setItems(filesList);
+				}
+				
+				filesList.clear();
+				try {
+					controller.refresh();
+				} catch (ClassNotFoundException | IOException e) {
+					errorDisplay(e);
+				}
+				displayFiles();
+				listViewFiles.setItems(filesList);
+			}
+		});
+		
 		connectButton.setOnMouseClicked(event ->{
-			if(connect())
+			ServerChoice server = listViewServers.getSelectionModel().getSelectedItem();
+			if(connect(server))
 				displayFiles();
 		});
 		
 		refreshButton.setOnMouseClicked(event ->{
-			if(connect()){
+			if(controller != null){
 				filesList.clear();
 				try {
 					controller.refresh();
@@ -379,6 +447,21 @@ public class Main extends Application {
 					errorDisplay(e);
 				}
 				getFilesOrdered(controller.getFiles());
+			}
+		});
+		
+		homeButton.setOnMouseClicked(event ->{
+			if(controller != null){
+				filesList.clear();
+				try {
+					controller = new ClientApi(currentServer.getAddres());
+					getFilesOrdered(controller.getFiles());
+					serverStatusLabel.setText("Connected");
+
+					displayFiles();
+				} catch (ClassNotFoundException | IOException e) {
+					errorDisplay(e);
+				}
 			}
 		});
 		
@@ -391,14 +474,29 @@ public class Main extends Application {
 				FileInfo remoteFile = (FileInfo) remoteObject;
 				remoteObjectStatusLabel.setText(remoteFile.name);
 				
-				text = "File name: " + remoteFile.name;
+				text = "File name: " + remoteFile.name + "\n"
+						+ "File size: " + remoteFile.size + " B \n"
+						+ "File path: " + remoteFile.path + " \n";
 				textAreaFileDetails.setText(text);
 			}
 			else if(remoteObject instanceof DirectoryInfo) {
 				DirectoryInfo remoteDirectory = (DirectoryInfo) remoteObject;
 				remoteObjectStatusLabel.setText(remoteDirectory.name);
 				
-				text = "Directory name: " + remoteDirectory.name;
+				text = "Directory name: " + remoteDirectory.name + "\n"
+						+ "Directory path: " + remoteDirectory.path + " \n\n"
+						+ "Directories insied:  \n";
+						
+				for (DirectoryInfo f : remoteDirectory.dirs) {
+					text = text + f.name + "\n";
+				}
+				
+				text = text + "\n"
+						+ "Files insiede: \n";
+				
+				for (FileInfo f : remoteDirectory.files) {
+					text = text + f.name + "\n";
+				}
 				textAreaFileDetails.setText(text);
 			}
 			else {
