@@ -46,6 +46,7 @@ public class RemoteFileInfo implements Serializable
             }
             md.update(buf, 0, readBytes);
         }
+        fileInput.close();
         return md.digest();
     }
 
