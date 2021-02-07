@@ -79,28 +79,19 @@ class RequestHandler implements Runnable
                 {
                     handleUpDir(line.split(" ", 2)[1]);
                 }
+                else if (line.startsWith("deletedir "))
+                {
+                    handleDeleteDir(line.split(" ", 2)[1]);
+                }
             } catch (Exception e) {
-            	e.printStackTrace();
+//            	e.printStackTrace();
                 try {
                     input.reset();
                 } catch (IOException e1) {
                     return;
                 }
                 e.printStackTrace();
-            } finally {
-				if(input != null)
-					try {
-						input.close();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				if(output != null)
-					try {
-						output.close();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-			}
+            }
         }
     }
     
