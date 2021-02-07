@@ -96,5 +96,4 @@ public class RemoteDirectory implements Serializable {
     {
         dirs.add(dir);
     }
-
 }

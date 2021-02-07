@@ -7,7 +7,6 @@ import java.util.Scanner;
 import ClientApi.ClientApi;
 import ClientApi.DirectoryInfo;
 import server.IObserver;
-import server.RemoteDirectory;
 
 // TdbClient
 

@@ -75,6 +75,7 @@ public class TdpServer {
             var buf = fileInput.readNBytes((int) chunk);
             output.write(buf);
             output.flush();
+            output.close();
             if (observer != null)
             {
                 observer.updateProgress(totalSize  - size, totalSize);
@@ -107,6 +108,7 @@ public class TdpServer {
         var filepath = fileOnDisk.toPath();
         fileOutput.flush();
         fileOutput.close();
+        socketInput.close();
         return filepath;
     }
     
@@ -157,7 +159,9 @@ public class TdpServer {
     {
         rootDir = new RemoteDirectory("");
         try {
-            Files.list(path).forEach(new ConsumerImpl(rootDir));;
+            var stream = Files.list(path);
+            stream.forEach(new ConsumerImpl(rootDir));
+            stream.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
