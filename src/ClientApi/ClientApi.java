@@ -54,7 +54,7 @@ public class ClientApi implements AutoCloseable
     }
     public boolean uploadDirectory(String directoryName ) throws IOException, ClassNotFoundException
     {
-        return singleRequest("updir, ", directoryName);
+        return singleRequest("updir ", directoryName);
     }
     
     public boolean deleteFile(String serverPath) throws UnknownHostException, IOException, ClassNotFoundException

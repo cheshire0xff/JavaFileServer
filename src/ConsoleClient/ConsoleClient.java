@@ -109,10 +109,6 @@ public class ConsoleClient {
                     }
                     scn.close();
                 }
-                else if (line.equals("h"))
-                {
-                    help();
-                }
                 else if (line.equals("q"))
                 {
                     System.out.println("quitting");
@@ -125,7 +121,8 @@ public class ConsoleClient {
                 else if (line.startsWith("download "))
                 {
                     args = line.split(" ", 3);
-                   if ( clientApi.downloadFile(args[2],args[1], new Observer("Downloading")))
+                   if ( (args.length > 2) 
+                           && clientApi.downloadFile(args[2],args[1], new Observer("Downloading")))
                    {
                        System.out.println("Download ok.");
                    }
@@ -137,7 +134,8 @@ public class ConsoleClient {
                 else if (line.startsWith("upload "))
                 {
                     args = line.split(" ", 3);
-                    if (clientApi.uploadFile(args[1],args[2], new Observer("Uploading")))
+                    if ((args.length > 2)
+                            && clientApi.uploadFile(args[1],args[2], new Observer("Uploading")))
                     {
                        System.out.println("Upload ok.");
                     }
@@ -181,6 +179,10 @@ public class ConsoleClient {
                     {
                        System.out.println("rm failed.");
                     }
+                }
+                else
+                {
+                    help();
                 }
             }
         } catch (Exception  e) {
