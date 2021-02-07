@@ -470,12 +470,17 @@ public class Main extends Application {
 		});
 		
 		homeButton.setOnMouseClicked(event ->{
-		    if (currentServer != null)
-		    {
-		        filesList.clear();
-		        connect(currentServer);
-		        displayFiles();
-		    }
+			if(controller != null){
+				filesList.clear();
+				try {
+					controller.refresh();
+				} catch (ClassNotFoundException | IOException e) {
+					errorDisplay(e);
+				}
+				getFilesOrdered(controller.getFiles());
+			}
+			else 
+				System.out.println("controller == null");
 		});
 		
 		listViewFiles.setOnMouseClicked(event -> {
